@@ -22,8 +22,9 @@ const getUsers = async (req, res) => {
       skip,
       take: limit,
       select: {
-        id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true
+        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
       },
+
       orderBy: { createdAt: 'desc' }
     });
 
@@ -46,7 +47,7 @@ const getUserById = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -69,7 +70,7 @@ const createUser = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword, role: role || 'USER' },
-      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     res.status(201).json(user);
@@ -154,7 +155,9 @@ const updateProfile = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: userId },
       data: { name, email },
-      select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true, updatedAt: true }
+      select: {
+        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
+      }
     });
 
     res.json(user);
@@ -229,7 +232,9 @@ const uploadAvatar = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: userId },
       data: { avatar: avatarPath },
-      select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true, updatedAt: true }
+      select: {
+        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
+      }
     });
 
     console.log('Database updated successfully');

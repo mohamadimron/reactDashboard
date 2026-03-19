@@ -73,6 +73,13 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user.id, user.role);
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
     res.json({
       id: user.id,
       name: user.name,

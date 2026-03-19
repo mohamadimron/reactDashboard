@@ -20,6 +20,8 @@ const Users = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const {
     register,
@@ -89,14 +91,25 @@ const Users = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await api.delete(`/users/${id}`);
-        fetchUsers();
-      } catch (error) {
-        console.error('Failed to delete user', error);
-      }
+  const openDeleteModal = (user) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      await api.delete(`/users/${userToDelete.id}`);
+      fetchUsers();
+      closeDeleteModal();
+    } catch (error) {
+      console.error('Failed to delete user', error);
+      alert(error.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -131,52 +144,108 @@ const Users = () => {
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated At</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">User</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Role</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Last Login</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Registered</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Last Update</th>
+                <th className="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">Loading...</td>
+                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-gray-400">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <span className="font-medium">Loading user data...</span>
+                    </div>
+                  </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">No users found.</td>
+                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-gray-400 font-medium">No users found in the system.</td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono" title={user.id}>
-                      {user.id.substring(0, 8)}...
+                  <tr key={user.id} className="hover:bg-blue-50/30 transition-colors group">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100 group-hover:border-blue-200 transition-colors">
+                          {user.avatar ? (
+                            <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-sm">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 leading-none mb-1">{user.name}</p>
+                          <p className="text-xs text-gray-500 font-medium">{user.email}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                        user.role === 'ADMIN' 
+                          ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                          : 'bg-blue-100 text-blue-700 border border-blue-200'
+                      }`}>
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString()} {new Date(user.createdAt).toLocaleTimeString()}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-700 font-semibold">
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                        </span>
+                        {user.lastLogin && (
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                            {new Date(user.lastLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                      {new Date(user.updatedAt).toLocaleDateString()} {new Date(user.updatedAt).toLocaleTimeString()}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-600 font-medium">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium italic">
+                          ID: {user.id.substring(0, 8)}...
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-600 font-medium">
+                          {new Date(user.updatedAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                          {new Date(user.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => openModal(user)} className="text-indigo-600 hover:text-indigo-900 mr-4">
-                        <Pencil size={18} />
-                      </button>
-                      <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex justify-end items-center space-x-2">
+                        <button 
+                          onClick={() => openModal(user)} 
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Edit User"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button 
+                          onClick={() => openDeleteModal(user)} 
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Delete User"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -316,6 +385,48 @@ const Users = () => {
                 type="button"
                 onClick={closeModal}
                 className="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-6 py-3 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none transition-all sm:w-auto"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity" 
+            onClick={closeDeleteModal}
+          ></div>
+
+          {/* Modal Panel */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
+            <div className="bg-white p-6 sm:p-8">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-600 mb-4">
+                  <Trash2 size={32} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Delete User?</h3>
+                <p className="text-gray-500 font-medium">
+                  Are you sure you want to delete <span className="text-gray-900 font-bold">"{userToDelete?.name}"</span>? 
+                  This action cannot be undone and all associated data will be removed.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 px-6 py-4 sm:px-8 flex flex-col sm:flex-row gap-3 border-t border-gray-100">
+              <button
+                onClick={handleDelete}
+                className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-md px-6 py-3 bg-red-600 text-sm font-bold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all sm:order-2"
+              >
+                Yes, Delete User
+              </button>
+              <button
+                onClick={closeDeleteModal}
+                className="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-6 py-3 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none transition-all sm:order-1"
               >
                 Cancel
               </button>
