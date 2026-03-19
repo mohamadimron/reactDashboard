@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_URL } from '../services/api';
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -175,7 +175,7 @@ const Users = () => {
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100 group-hover:border-blue-200 transition-colors">
                           {user.avatar ? (
-                            <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="" className="w-full h-full object-cover" />
+                            <img src={`${API_URL}${user.avatar}`} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-sm">
                               {user.name.charAt(0).toUpperCase()}

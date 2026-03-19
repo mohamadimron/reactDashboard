@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../services/api';
 import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -68,7 +69,7 @@ const DashboardLayout = () => {
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold overflow-hidden">
                 {user?.avatar ? (
-                  <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`${API_URL}${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user?.name?.charAt(0)
                 )}
@@ -157,7 +158,7 @@ const DashboardLayout = () => {
             <Link to="/dashboard/profile" className="w-11 h-11 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl p-0.5 shadow-lg shadow-blue-100 hover:scale-105 transition-transform active:scale-95 overflow-hidden">
               <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center font-black text-blue-600 text-lg overflow-hidden">
                 {user?.avatar ? (
-                  <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`${API_URL}${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user?.name?.charAt(0).toUpperCase()
                 )}

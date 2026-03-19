@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { API_URL } from '../services/api';
 import { User, Mail, Lock, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const profileSchema = z.object({
@@ -80,7 +80,7 @@ const Profile = () => {
     }
   };
 
-  const avatarUrl = user?.avatar ? `http://${window.location.hostname}:5000${user.avatar}` : null;
+  const avatarUrl = user?.avatar ? `${API_URL}${user.avatar}` : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
