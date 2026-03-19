@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ requireAdmin }) => {
+const ProtectedRoute = ({ children, requireAdmin }) => {
   const { user } = useAuth();
 
   if (!user) {
@@ -12,7 +12,7 @@ const ProtectedRoute = ({ requireAdmin }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Outlet />;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

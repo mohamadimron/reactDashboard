@@ -22,7 +22,7 @@ const getUsers = async (req, res) => {
       skip,
       take: limit,
       select: {
-        id: true, name: true, email: true, role: true, createdAt: true
+        id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -46,7 +46,7 @@ const getUserById = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, name: true, email: true, role: true, createdAt: true }
+      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
     });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -69,7 +69,7 @@ const createUser = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword, role: role || 'USER' },
-      select: { id: true, name: true, email: true, role: true }
+      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
     });
 
     res.status(201).json(user);
@@ -92,7 +92,7 @@ const updateUser = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true }
+      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
     });
 
     res.json(user);
