@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Dynamically determine the API URL based on the current window location
+const API_URL = `http://${window.location.hostname}:5000/api`;
+
 const api = axios.create({
-  baseURL: 'http://192.168.0.105:5000/api',
+  baseURL: API_URL,
 });
 
 api.interceptors.request.use(

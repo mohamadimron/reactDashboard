@@ -15,6 +15,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("USER") // USER or ADMIN
+  avatar    String?  // Field for profile picture path
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

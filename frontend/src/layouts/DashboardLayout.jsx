@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -16,6 +16,7 @@ const DashboardLayout = () => {
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
+    { to: '/dashboard/profile', label: 'My Profile', icon: User, adminOnly: false },
     { to: '/dashboard/users', label: 'User Management', icon: Users, adminOnly: true },
   ];
 
@@ -65,8 +66,12 @@ const DashboardLayout = () => {
         <div className="p-6 border-t border-gray-50">
           <div className="bg-gray-50 rounded-2xl p-4 mb-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                {user?.name?.charAt(0)}
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold overflow-hidden">
+                {user?.avatar ? (
+                  <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0)
+                )}
               </div>
               <div className="overflow-hidden">
                 <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
@@ -149,11 +154,15 @@ const DashboardLayout = () => {
               <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
               <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{user?.role}</p>
             </div>
-            <div className="w-11 h-11 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl p-0.5 shadow-lg shadow-blue-100">
-              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center font-black text-blue-600 text-lg">
-                {user?.name?.charAt(0).toUpperCase()}
+            <Link to="/dashboard/profile" className="w-11 h-11 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl p-0.5 shadow-lg shadow-blue-100 hover:scale-105 transition-transform active:scale-95 overflow-hidden">
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center font-black text-blue-600 text-lg overflow-hidden">
+                {user?.avatar ? (
+                  <img src={`http://${window.location.hostname}:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase()
+                )}
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
