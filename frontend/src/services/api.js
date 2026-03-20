@@ -20,4 +20,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && error.response?.data?.code === 'SESSION_REPLACED') {
+      // Clear storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Dispatch custom event for real-time UI notification
+      window.dispatchEvent(new CustomEvent('session-replaced', { 
+        detail: { message: error.response.data.message } 
+      }));
+      
+      // Redirect will be handled by context/app logic or the popup
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

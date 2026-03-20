@@ -17,6 +17,7 @@ model User {
   role      String   @default("USER") // USER or ADMIN
   avatar    String?  // Field for profile picture path
   lastLogin DateTime? // Field for tracking last login time
+  lastSessionId String? // To enforce one session per user
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

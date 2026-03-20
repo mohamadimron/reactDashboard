@@ -8,10 +8,12 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
+import SessionExpiredModal from './components/SessionExpiredModal';
 
 function App() {
   return (
     <AuthProvider>
+      <SessionExpiredModal />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

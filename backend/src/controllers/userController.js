@@ -24,9 +24,9 @@ const getUsers = async (req, res) => {
       select: {
         id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
       },
+      orderBy: { updatedAt: 'desc' }
+      });
 
-      orderBy: { createdAt: 'desc' }
-    });
 
     const total = await prisma.user.count({ where });
 

@@ -34,11 +34,13 @@ const register = async (req, res) => {
     const role = count === 0 ? 'ADMIN' : 'USER';
 
     const hashedPassword = await hashPassword(password);
+    const sessionId = require('crypto').randomUUID();
+    
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, role },
+      data: { name, email, password: hashedPassword, role, lastSessionId: sessionId },
     });
 
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(user.id, user.role, sessionId);
 
     console.log(`[Auth] New user registered: ${email} (${role})`);
 
@@ -80,12 +82,16 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const token = generateToken(user.id, user.role);
+    const sessionId = require('crypto').randomUUID();
+    const token = generateToken(user.id, user.role, sessionId);
 
-    // Update last login
+    // Update last login and session ID
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date() }
+      data: { 
+        lastLogin: new Date(),
+        lastSessionId: sessionId
+      }
     });
 
     console.log(`[Auth] Login successful: ${email}`);
