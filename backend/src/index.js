@@ -11,15 +11,10 @@ const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
-// 1. Security Headers (Helmet)
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded from external domains
-}));
-
-// 2. CORS Configuration
+// 1. CORS Configuration - MUST BE AT THE TOP
 const allowedOrigins = [
-  // 'http://localhost:5173',
-  // 'http://127.0.0.1:5173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
   'http://192.168.0.105:5173',
   'https://test2.tuman.web.id',
   'https://apitest2.tuman.web.id'
@@ -33,34 +28,42 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`CORS blocked for origin: ${origin}`);
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      // During development/debugging, you might want to be more permissive:
+      // callback(null, true); 
       callback(new Error('Not allowed by CORS'), false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200
 }));
 
-// 3. Rate Limiting
+// 2. Security Headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// 3. Rate Limiting - Increased limits for better UX during testing
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
-  message: 'Too many requests from this IP, please try again after 15 minutes'
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: 'Too many requests, please try again later'
 });
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Strict limit for login/register
-  message: 'Too many authentication attempts, please try again after 15 minutes'
+  windowMs: 15 * 60 * 1000,
+  max: 100, // Increased to 100 for testing
+  message: 'Too many login attempts, please try again later'
 });
 
 app.use('/api/', generalLimiter);
 app.use('/api/auth/', authLimiter);
 
-// 4. Body Parser with Size Limit (Prevent Payload Injection)
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// 4. Body Parser
+app.use(express.json({ limit: '1mb' })); // Increased limit slightly
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // 5. Static Files
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -69,18 +72,19 @@ app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-app.get('/', (origin, res) => {
+// Fix health check route arguments
+app.get('/', (req, res) => {
   res.status(200).json({ status: 'API is healthy and secured' });
 });
 
-// 7. Global Error Handler (Prevent Data Leakage via Stack Traces)
+// 7. Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  const status = err.status || 500;
-  res.status(status).json({
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal Server Error' 
-      : err.message
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ message: 'CORS policy blocked this request' });
+  }
+  console.error('[Error]', err.stack);
+  res.status(err.status || 500).json({
+    message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
   });
 });
 
@@ -88,4 +92,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`[Security] Server secured and running on port ${PORT}`);
+  console.log(`[CORS] Allowed Origins: ${allowedOrigins.join(', ')}`);
 });

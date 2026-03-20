@@ -5,10 +5,10 @@ const firstNames = ['Budi', 'Siti', 'Agus', 'Lani', 'Eko', 'Dewi', 'Rian', 'Maya
 const lastNames = ['Santoso', 'Wijaya', 'Saputra', 'Lestari', 'Hidayat', 'Kusuma', 'Pratama', 'Putri', 'Ramadhan', 'Gunawan', 'Sutrisno', 'Purnomo', 'Setiawan', 'Mulyani', 'Budiman', 'Hardianto', 'Simanjuntak', 'Siregar', 'Nasution', 'Pasaribu', 'Wahyudi', 'Kurniawan', 'Suhendra', 'Zulkarnaen', 'Syarifuddin'];
 
 async function seed() {
-  console.log('Starting to seed 500 realistic users...');
+  console.log('Starting to seed 500 realistic users to PostgreSQL...');
   
   const password = await bcrypt.hash('password123', 10);
-  let count = 0;
+  const users = [];
 
   for (let i = 1; i <= 500; i++) {
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -17,25 +17,26 @@ async function seed() {
     const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@example.com`;
     const role = Math.random() > 0.95 ? 'ADMIN' : 'USER';
 
-    try {
-      await prisma.user.create({
-        data: {
-          name,
-          email,
-          password,
-          role,
-          lastLogin: Math.random() > 0.3 ? new Date(Date.now() - Math.floor(Math.random() * 1000000000)) : null,
-        }
-      });
-      count++;
-      if (count % 50 === 0) console.log(`Created ${count} users...`);
-    } catch (e) {
-      // Skip if email already exists
-    }
+    users.push({
+      name,
+      email,
+      password,
+      role,
+      lastLogin: Math.random() > 0.3 ? new Date(Date.now() - Math.floor(Math.random() * 1000000000)) : null,
+    });
   }
 
-  console.log(`Successfully seeded ${count} users.`);
-  await prisma.$disconnect();
+  try {
+    // Use createMany for high performance in PostgreSQL
+    const result = await prisma.user.createMany({
+      data: users,
+    });
+    console.log(`Successfully seeded ${result.count} users.`);
+  } catch (error) {
+    console.error('Error seeding users:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 seed();

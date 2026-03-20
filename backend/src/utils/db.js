@@ -1,11 +1,20 @@
-require('dotenv').config();
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-const path = require('path');
 
-// Prisma 7 with better-sqlite3 adapter requires an object with a 'url' property
-const dbPath = path.join(process.cwd(), 'prisma/dev.db');
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
-const prisma = new PrismaClient({ adapter });
+// Use individual parameters to ensure correct type handling
+const pool = new Pool({
+  user: 'user-react-dashboard',
+  host: '192.168.0.105',
+  database: 'react-dashboard',
+  password: 'NoComent@x9x9',
+  port: 5432,
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ 
+  adapter,
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+});
 
 module.exports = prisma;

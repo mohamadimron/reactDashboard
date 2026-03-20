@@ -21,7 +21,8 @@ const register = async (req, res) => {
       return res.status(400).json({ errors: parsedData.error.format() });
     }
 
-    const { name, email, password } = parsedData.data;
+    const { name, email: rawEmail, password } = parsedData.data;
+    const email = rawEmail.toLowerCase(); // Normalize email
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
@@ -39,6 +40,8 @@ const register = async (req, res) => {
 
     const token = generateToken(user.id, user.role);
 
+    console.log(`[Auth] New user registered: ${email} (${role})`);
+
     res.status(201).json({
       id: user.id,
       name: user.name,
@@ -48,8 +51,8 @@ const register = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('[Auth] Register Error:', error);
+    res.status(500).json({ message: 'Server Error during registration' });
   }
 };
 
@@ -60,15 +63,20 @@ const login = async (req, res) => {
       return res.status(400).json({ errors: parsedData.error.format() });
     }
 
-    const { email, password } = parsedData.data;
+    const { email: rawEmail, password } = parsedData.data;
+    const email = rawEmail.toLowerCase(); // Normalize email
+
+    console.log(`[Auth] Login attempt for: ${email}`);
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      console.warn(`[Auth] Login failed: User not found (${email})`);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
+      console.warn(`[Auth] Login failed: Incorrect password for (${email})`);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -80,6 +88,8 @@ const login = async (req, res) => {
       data: { lastLogin: new Date() }
     });
 
+    console.log(`[Auth] Login successful: ${email}`);
+
     res.json({
       id: user.id,
       name: user.name,
@@ -89,8 +99,8 @@ const login = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('[Auth] Login Error:', error);
+    res.status(500).json({ message: 'Server Error during login' });
   }
 };
 
