@@ -7,15 +7,39 @@ const getUsers = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
+    const { roleId, statusId, activity } = req.query;
 
     const skip = (page - 1) * limit;
 
     const where = {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+      AND: [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } }
+          ]
+        }
       ]
     };
+
+    if (roleId) where.AND.push({ roleId });
+    if (statusId) where.AND.push({ statusId });
+    
+    if (activity) {
+      const now = new Date();
+      if (activity === 'today') {
+        const today = new Date(now.setHours(0,0,0,0));
+        where.AND.push({ lastLogin: { gte: today } });
+      } else if (activity === 'week') {
+        const weekAgo = new Date(now.setDate(now.getDate() - 7));
+        where.AND.push({ lastLogin: { gte: weekAgo } });
+      } else if (activity === 'month') {
+        const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+        where.AND.push({ lastLogin: { gte: monthAgo } });
+      } else if (activity === 'never') {
+        where.AND.push({ lastLogin: null });
+      }
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({

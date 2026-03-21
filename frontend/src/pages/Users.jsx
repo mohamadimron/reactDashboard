@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { API_URL } from '../services/api';
-import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight, Eye, X, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight, Eye, X, Loader2, Filter } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,6 +20,12 @@ const Users = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  
+  // Filter States
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [activityFilter, setActivityFilter] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -41,7 +47,15 @@ const Users = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/users?page=${page}&limit=10&search=${search}`);
+      const params = new URLSearchParams({
+        page,
+        limit: 10,
+        search,
+        roleId: roleFilter,
+        statusId: statusFilter,
+        activity: activityFilter
+      });
+      const response = await api.get(`/users?${params.toString()}`);
       setUsers(Array.isArray(response.data.users) ? response.data.users : []);
       setTotalPages(response.data.totalPages || 1);
     } catch (error) {
@@ -74,10 +88,18 @@ const Users = () => {
 
   useEffect(() => {
     fetchData();
-  }, [page, search]);
+  }, [page, search, roleFilter, statusFilter, activityFilter]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setRoleFilter('');
+    setStatusFilter('');
+    setActivityFilter('');
+    setSearch('');
     setPage(1);
   };
 
@@ -89,10 +111,8 @@ const Users = () => {
 
     setEditingUser(user);
     if (user) {
-      // Use null-safe find and mapping
       const currentRoleName = user.role || '';
       const currentStatusName = user.status || '';
-      
       const rId = roles.find(r => r.name?.toUpperCase() === currentRoleName.toUpperCase())?.id || '';
       const sId = statuses.find(s => s.name?.toUpperCase() === currentStatusName.toUpperCase())?.id || '';
       
@@ -184,20 +204,66 @@ const Users = () => {
         </button>
       </div>
 
-      <div className="bg-white shadow-sm rounded-[2.5rem] border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-50">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+      {/* Advanced Filter Bar */}
+      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-gray-900 font-black text-sm">
+            <Filter size={18} className="text-blue-600" />
+            <span>Directory Filters</span>
+          </div>
+          <button 
+            onClick={resetFilters}
+            className="text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-colors"
+          >
+            Reset All
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search directory..."
+              placeholder="Search Identity..."
               value={search}
               onChange={handleSearch}
-              className="block w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
-        </div>
 
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+          >
+            <option value="">All Privileges</option>
+            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+          >
+            <option value="">All Statuses</option>
+            {statuses.map(s => <option key={s.id} value={s.id}>{s.name.replace('_', ' ')}</option>)}
+          </select>
+
+          <select
+            value={activityFilter}
+            onChange={(e) => setActivityFilter(e.target.value)}
+            className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+          >
+            <option value="">All Activity</option>
+            <option value="today">Active Today</option>
+            <option value="week">Active This Week</option>
+            <option value="month">Active This Month</option>
+            <option value="never">Never Logged In</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="bg-white shadow-sm rounded-[2.5rem] border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-50">
             <thead className="bg-gray-50/50">
@@ -221,7 +287,7 @@ const Users = () => {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-16 text-center text-sm font-bold text-gray-400 uppercase tracking-widest">Directory is empty</td>
+                  <td colSpan="5" className="px-6 py-16 text-center text-sm font-bold text-gray-400 uppercase tracking-widest">No matching users found</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -245,7 +311,7 @@ const Users = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${
-                        user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                        user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : user.role === 'OPERATOR' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {user.role || 'USER'}
                       </span>
