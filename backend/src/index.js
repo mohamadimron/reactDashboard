@@ -2,7 +2,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -11,78 +10,79 @@ const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
-// 1. CORS Configuration - MUST BE AT THE TOP
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://192.168.0.105:5173',
-  'https://test2.tuman.web.id',
-  'https://apitest2.tuman.web.id'
-];
+// 0. Trust Proxy (Crucial for HTTPS/Nginx to pass correct origin/IP)
+app.set('trust proxy', 1);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked origin: ${origin}`);
-      // During development/debugging, you might want to be more permissive:
-      // callback(null, true); 
-      callback(new Error('Not allowed by CORS'), false);
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
+// 1. ABSOLUTE MANUAL CORS (Must be at the very top, before ANY other middleware)
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://192.168.0.105:5173',
+    'https://test2.tuman.web.id',
+    'https://apitest2.tuman.web.id'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // If the origin is in our whitelist, we explicitly allow it
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  // These headers must be present on ALL responses, including preflight
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Headers');
+  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24h
 
-// 2. Security Headers
+  // INSTANT RESPONSE FOR PREFLIGHT (OPTIONS)
+  // This bypasses rate limiters and body parsers for technical browser requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// 2. Security Hardening (Adjusted to not interfere with CORS)
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
 
-// 3. Rate Limiting - Increased limits for better UX during testing
-const generalLimiter = rateLimit({
+// 3. Body Parser (Placed after CORS check)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 4. Rate Limiting (High limits to prevent false positives during testing)
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: 'Too many requests, please try again later'
+  max: 5000, 
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Ensure rate limiter also returns CORS headers if it blocks a request
+  handler: (req, res) => {
+    res.status(429).json({ message: 'Too many requests, please try again later' });
+  }
 });
+app.use('/api/', apiLimiter);
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100, // Increased to 100 for testing
-  message: 'Too many login attempts, please try again later'
-});
-
-app.use('/api/', generalLimiter);
-app.use('/api/auth/', authLimiter);
-
-// 4. Body Parser
-app.use(express.json({ limit: '1mb' })); // Increased limit slightly
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-
-// 5. Static Files
+// 5. Static Files (Served under /api/uploads)
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // 6. Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-// Fix health check route arguments
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'API is healthy and secured' });
+  res.status(200).json({ status: 'API Online', secure: true });
 });
 
-// 7. Global Error Handler
+// 7. Global Error Handler (Guaranteed to not leak info but maintain CORS)
 app.use((err, req, res, next) => {
-  if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({ message: 'CORS policy blocked this request' });
-  }
-  console.error('[Error]', err.stack);
+  console.error('[CRITICAL ERROR]', err.stack);
   res.status(err.status || 500).json({
     message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
   });
@@ -90,7 +90,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`[Security] Server secured and running on port ${PORT}`);
-  console.log(`[CORS] Allowed Origins: ${allowedOrigins.join(', ')}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[CORE] Server accurately bound to port ${PORT}`);
+  console.log(`[AUTH] Single-session system active`);
 });

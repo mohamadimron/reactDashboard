@@ -11,6 +11,7 @@ const userSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().optional(),
   role: z.enum(['ADMIN', 'USER']),
+  isActive: z.boolean().default(true),
 });
 
 const Users = () => {
@@ -58,9 +59,9 @@ const Users = () => {
   const openModal = (user = null) => {
     setEditingUser(user);
     if (user) {
-      reset({ name: user.name, email: user.email, role: user.role, password: '' });
+      reset({ name: user.name, email: user.email, role: user.role, password: '', isActive: user.isActive });
     } else {
-      reset({ name: '', email: '', role: 'USER', password: '' });
+      reset({ name: '', email: '', role: 'USER', password: '', isActive: true });
     }
     setIsModalOpen(true);
   };
@@ -149,6 +150,7 @@ const Users = () => {
               <tr>
                 <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">User</th>
                 <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Role</th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Last Login</th>
                 <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Registered</th>
                 <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Last Update</th>
@@ -158,7 +160,7 @@ const Users = () => {
             <tbody className="bg-white divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-gray-400">
+                  <td colSpan="7" className="px-6 py-10 text-center text-sm text-gray-400">
                     <div className="flex flex-col items-center space-y-2">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                       <span className="font-medium">Loading user data...</span>
@@ -167,7 +169,7 @@ const Users = () => {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-gray-400 font-medium">No users found in the system.</td>
+                  <td colSpan="7" className="px-6 py-10 text-center text-sm text-gray-400 font-medium">No users found in the system.</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -196,6 +198,15 @@ const Users = () => {
                           : 'bg-blue-100 text-blue-700 border border-blue-200'
                       }`}>
                         {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                        user.isActive 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-red-100 text-red-700 border border-red-200'
+                      }`}>
+                        {user.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -368,15 +379,27 @@ const Users = () => {
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role Authorization</label>
-                  <select
-                    {...register('role')}
-                    className="block w-full border border-gray-300 rounded-xl shadow-sm py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white cursor-pointer"
-                  >
-                    <option value="USER">Standard User</option>
-                    <option value="ADMIN">Administrator</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role Authorization</label>
+                    <select
+                      {...register('role')}
+                      className="block w-full border border-gray-300 rounded-xl shadow-sm py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white cursor-pointer"
+                    >
+                      <option value="USER">Standard User</option>
+                      <option value="ADMIN">Administrator</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Account Status</label>
+                    <select
+                      {...register('isActive', { setValueAs: (v) => v === 'true' || v === true })}
+                      className="block w-full border border-gray-300 rounded-xl shadow-sm py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white cursor-pointer"
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
                 </div>
               </form>
             </div>

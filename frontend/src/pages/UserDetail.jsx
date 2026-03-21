@@ -135,6 +135,16 @@ const UserDetail = () => {
                   <span className="font-mono text-xs bg-white px-3 py-1.5 rounded-lg border border-gray-100 font-bold text-gray-700">{userData.id}</span>
                 </div>
                 <div className="flex items-center justify-between">
+                  <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Account Status</span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                    userData.isActive 
+                      ? 'bg-green-100 text-green-700 border border-green-200' 
+                      : 'bg-red-100 text-red-700 border border-red-200'
+                  }`}>
+                    {userData.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">System Access</span>
                   <span className="flex items-center space-x-1.5 text-green-600 font-black text-sm">
                     <CheckCircle2 size={16} />

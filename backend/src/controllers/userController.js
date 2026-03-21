@@ -22,7 +22,7 @@ const getUsers = async (req, res) => {
       skip,
       take: limit,
       select: {
-        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
+        id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true
       },
       orderBy: { updatedAt: 'desc' }
       });
@@ -56,12 +56,11 @@ const getUserById = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 // Create user (Admin only)
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    
+    const { name, email, password, role, isActive } = req.body;
+
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
@@ -69,8 +68,14 @@ const createUser = async (req, res) => {
 
     const hashedPassword = await hashPassword(password);
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, role: role || 'USER' },
-      select: { id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true }
+      data: { 
+        name, 
+        email, 
+        password: hashedPassword, 
+        role: role || 'USER',
+        isActive: isActive !== undefined ? isActive : true
+      },
+      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     res.status(201).json(user);
@@ -82,10 +87,15 @@ const createUser = async (req, res) => {
 // Update user
 const updateUser = async (req, res) => {
   try {
-    const { name, email, role, password } = req.body;
-    
-    let updateData = { name, email, role };
-    
+    const { name, email, role, password, isActive } = req.body;
+
+    let updateData = { 
+      name, 
+      email, 
+      role,
+      isActive: isActive !== undefined ? isActive : undefined
+    };
+
     if (password) {
       updateData.password = await hashPassword(password);
     }
@@ -93,7 +103,7 @@ const updateUser = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     res.json(user);

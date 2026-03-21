@@ -76,6 +76,12 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Check if account is active
+    if (!user.isActive) {
+      console.warn(`[Auth] Login blocked: Account inactive (${email})`);
+      return res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
+    }
+
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       console.warn(`[Auth] Login failed: Incorrect password for (${email})`);
