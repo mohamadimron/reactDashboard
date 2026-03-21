@@ -12,26 +12,31 @@ const getUsers = async (req, res) => {
 
     const where = {
       OR: [
-        { name: { contains: search } },
-        { email: { contains: search } }
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } }
       ]
     };
 
-    const users = await prisma.user.findMany({
-      where,
-      skip,
-      take: limit,
-      select: {
-        id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true
-      },
-      orderBy: { updatedAt: 'desc' }
-      });
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        include: { role: true, status: true },
+        orderBy: { updatedAt: 'desc' }
+      }),
+      prisma.user.count({ where })
+    ]);
 
-
-    const total = await prisma.user.count({ where });
+    // Format for frontend
+    const formattedUsers = users.map(u => ({
+      ...u,
+      role: u.role.name,
+      status: u.status.name
+    }));
 
     res.json({
-      users,
+      users: formattedUsers,
       page,
       totalPages: Math.ceil(total / limit),
       totalUsers: total,
@@ -47,19 +52,27 @@ const getUserById = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
+      include: { role: true, status: true }
     });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
+    
+    const formatted = {
+      ...user,
+      role: user.role.name,
+      status: user.status.name
+    };
+    
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 // Create user (Admin only)
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, role, isActive } = req.body;
+    const { name, email, password, roleId, statusId } = req.body;
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
@@ -72,14 +85,19 @@ const createUser = async (req, res) => {
         name, 
         email, 
         password: hashedPassword, 
-        role: role || 'USER',
-        isActive: isActive !== undefined ? isActive : true
+        roleId,
+        statusId
       },
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
+      include: { role: true, status: true }
     });
 
-    res.status(201).json(user);
+    res.status(201).json({
+      ...user,
+      role: user.role.name,
+      status: user.status.name
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -87,14 +105,9 @@ const createUser = async (req, res) => {
 // Update user
 const updateUser = async (req, res) => {
   try {
-    const { name, email, role, password, isActive } = req.body;
+    const { name, email, roleId, password, statusId } = req.body;
 
-    let updateData = { 
-      name, 
-      email, 
-      role,
-      isActive: isActive !== undefined ? isActive : undefined
-    };
+    let updateData = { name, email, roleId, statusId };
 
     if (password) {
       updateData.password = await hashPassword(password);
@@ -103,10 +116,14 @@ const updateUser = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
+      include: { role: true, status: true }
     });
 
-    res.json(user);
+    res.json({
+      ...user,
+      role: user.role.name,
+      status: user.status.name
+    });
   } catch (error) {
     if (error.code === 'P2025') {
       return res.status(404).json({ message: 'User not found' });
@@ -130,133 +147,85 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Get Dashboard Stats
-const getStats = async (req, res) => {
+// Helper endpoints for frontend dropdowns
+const getRoles = async (req, res) => {
   try {
-    const totalUsers = await prisma.user.count();
-    const adminUsers = await prisma.user.count({ where: { role: 'ADMIN' } });
-    const regularUsers = await prisma.user.count({ where: { role: 'USER' } });
-    
-    // Recent registrations in last 7 days (mock logic for demo)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const newUsersLastWeek = await prisma.user.count({
-      where: { createdAt: { gte: sevenDaysAgo } }
-    });
-
-    res.json({
-      totalUsers,
-      adminUsers,
-      regularUsers,
-      newUsersLastWeek
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
-  }
-}
-
-// Update own profile
-const updateProfile = async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    const userId = req.user.userId;
-
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: { name, email },
-      select: {
-        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
-      }
-    });
-
-    res.json(user);
+    const roles = await prisma.role.findMany();
+    res.json(roles);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// Update own password
+const getStatuses = async (req, res) => {
+  try {
+    const statuses = await prisma.status.findMany();
+    res.json(statuses);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Stats
+const getStats = async (req, res) => {
+  try {
+    const totalUsers = await prisma.user.count();
+    const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+    const adminUsers = await prisma.user.count({ where: { roleId: adminRole.id } });
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const newUsersLastWeek = await prisma.user.count({
+      where: { createdAt: { gte: sevenDaysAgo } }
+    });
+
+    res.json({ totalUsers, adminUsers, newUsersLastWeek });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+}
+
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { name, email },
+      include: { role: true, status: true }
+    });
+    res.json({ ...user, role: user.role.name, status: user.status.name });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.userId;
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
     const isMatch = await require('../utils/auth').comparePassword(currentPassword, user.password);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Current password incorrect' });
-    }
-
+    if (!isMatch) return res.status(400).json({ message: 'Current password incorrect' });
     const hashedPassword = await require('../utils/auth').hashPassword(newPassword);
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword }
-    });
-
+    await prisma.user.update({ where: { id: req.user.userId }, data: { password: hashedPassword } });
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// Upload Avatar
 const uploadAvatar = async (req, res) => {
   try {
-    console.log('Upload request received for user:', req.user?.userId);
-    
-    if (!req.file) {
-      console.log('Multer req.file is missing');
-      return res.status(400).json({ message: 'No file uploaded or file rejected by filter' });
-    }
-
-    const userId = req.user.userId;
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const avatarPath = `/uploads/${req.file.filename}`;
-    console.log('New avatar path:', avatarPath);
-
-    // Get current user to see if we should delete old avatar
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-    
-    if (currentUser && currentUser.avatar) {
-        const fs = require('fs');
-        const path = require('path');
-        // Ensure path is relative to process.cwd() without leading slash
-        const relativePath = currentUser.avatar.startsWith('/') ? currentUser.avatar.substring(1) : currentUser.avatar;
-        const oldFilePath = path.join(process.cwd(), relativePath);
-        
-        console.log('Attempting to delete old avatar at:', oldFilePath);
-        try {
-            if (fs.existsSync(oldFilePath)) {
-                fs.unlinkSync(oldFilePath);
-                console.log('Old avatar deleted successfully');
-            } else {
-                console.log('Old avatar file not found on disk');
-            }
-        } catch (fileErr) {
-            console.error('Non-critical error deleting old avatar:', fileErr.message);
-        }
-    }
-
-    console.log('Updating database for user:', userId);
     const user = await prisma.user.update({
-      where: { id: userId },
+      where: { id: req.user.userId },
       data: { avatar: avatarPath },
-      select: {
-        id: true, name: true, email: true, role: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true
-      }
+      include: { role: true, status: true }
     });
-
-    console.log('Database updated successfully');
-    res.json(user);
+    res.json({ ...user, role: user.role.name, status: user.status.name });
   } catch (error) {
-    console.error('CRITICAL UPLOAD ERROR:', error);
-    res.status(500).json({ 
-      message: 'Server Error during upload', 
-      debug: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
-    });
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar };
+module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses };

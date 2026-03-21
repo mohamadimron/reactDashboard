@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar } = require('../controllers/userController');
+const { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses } = require('../controllers/userController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const upload = require('../utils/upload');
 
@@ -8,6 +8,9 @@ const router = express.Router();
 router.route('/')
   .get(protect, getUsers)
   .post(protect, admin, createUser);
+
+router.route('/roles').get(protect, admin, getRoles);
+router.route('/statuses').get(protect, admin, getStatuses);
 
 router.route('/stats')
   .get(protect, getStats);

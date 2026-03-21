@@ -23,29 +23,39 @@ const register = async (req, res) => {
     }
 
     const { name, email: rawEmail, password } = parsedData.data;
-    const email = rawEmail.toLowerCase(); // Normalize email
+    const email = rawEmail.toLowerCase();
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Determine role: if first user, make them ADMIN
+    // Dynamic Role & Status lookup
     const count = await prisma.user.count();
-    const role = count === 0 ? 'ADMIN' : 'USER';
+    const roleName = count === 0 ? 'ADMIN' : 'USER';
+    
+    const [role, status] = await Promise.all([
+      prisma.role.findUnique({ where: { name: roleName } }),
+      prisma.status.findUnique({ where: { name: 'ACTIVE' } })
+    ]);
 
     const hashedPassword = await hashPassword(password);
     const sessionId = require('crypto').randomUUID();
     
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, role, lastSessionId: sessionId },
+      data: { 
+        name, 
+        email, 
+        password: hashedPassword, 
+        roleId: role.id,
+        statusId: status.id,
+        lastSessionId: sessionId 
+      },
+      include: { role: true, status: true }
     });
 
-    const token = generateToken(user.id, user.role, sessionId);
+    const token = generateToken(user.id, user.role.name, sessionId);
 
-    console.log(`[Auth] New user registered: ${email} (${role})`);
-
-    // Log the event
     logAuthEvent({
       userId: user.id,
       usernameInput: email,
@@ -57,7 +67,8 @@ const register = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role.name,
+      status: user.status.name,
       avatar: user.avatar,
       token,
     });
@@ -75,62 +86,47 @@ const login = async (req, res) => {
     }
 
     const { email: rawEmail, password } = parsedData.data;
-    const email = rawEmail.toLowerCase(); // Normalize email
+    const email = rawEmail.toLowerCase();
 
-    console.log(`[Auth] Login attempt for: ${email}`);
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: { role: true, status: true }
+    });
 
-    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      console.warn(`[Auth] Login failed: User not found (${email})`);
       logAuthEvent({ usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: 'USER_NOT_FOUND', req });
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if account is active
-    if (!user.isActive) {
-      console.warn(`[Auth] Login blocked: Account inactive (${email})`);
-      logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: 'ACCOUNT_INACTIVE', req });
-      return res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
+    // Dynamic Status Check
+    if (user.status.name !== 'ACTIVE') {
+      const reason = user.status.name === 'SUSPEND' ? 'ACCOUNT_SUSPENDED' : 'ACCOUNT_INACTIVE';
+      logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: reason, req });
+      return res.status(403).json({ message: `Your account status is ${user.status.name}. Please contact administrator.` });
     }
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
-      console.warn(`[Auth] Login failed: Incorrect password for (${email})`);
       logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: 'WRONG_PASSWORD', req });
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const sessionId = require('crypto').randomUUID();
-    const token = generateToken(user.id, user.role, sessionId);
-
-    // Update last login, session ID, and device info
-    const UAParser = require('ua-parser-js');
-    const parser = new UAParser(req.headers['user-agent']);
-    const result = parser.getResult();
-    const browser = result.browser.name || 'Unknown Browser';
-    const os = result.os.name || 'Unknown OS';
-    const deviceType = result.device.type ? result.device.type.charAt(0).toUpperCase() + result.device.type.slice(1) : 'Desktop';
-    const deviceInfo = `${browser} on ${os} (${deviceType})`;
+    const token = generateToken(user.id, user.role.name, sessionId);
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { 
-        lastLogin: new Date(),
-        lastSessionId: sessionId,
-        deviceInfo: deviceInfo
-      }
+      data: { lastLogin: new Date(), lastSessionId: sessionId }
     });
 
-    console.log(`[Auth] Login successful: ${email}`);
-    
-    // Log the success event
     logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_SUCCESS', req });
 
     res.json({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role.name,
+      status: user.status.name,
       avatar: user.avatar,
       token,
     });

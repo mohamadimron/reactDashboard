@@ -4,7 +4,8 @@ import api, { API_URL } from '../services/api';
 import { 
   ArrowLeft, Mail, Shield, Calendar, Clock, 
   User as UserIcon, CheckCircle2, XCircle, 
-  Search, Maximize2, X, Monitor, Smartphone, Tablet, Cpu
+  Search, Maximize2, X, Monitor, Smartphone, Tablet, Cpu,
+  AlertCircle
 } from 'lucide-react';
 
 const UserDetail = () => {
@@ -60,6 +61,17 @@ const UserDetail = () => {
     return <Monitor size={16} />;
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'ACTIVE': return { color: 'bg-green-100 text-green-700 border-green-200', icon: <CheckCircle2 size={16} />, label: 'AUTHORIZED' };
+      case 'SUSPEND': return { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: <AlertCircle size={16} />, label: 'SUSPENDED' };
+      case 'NOT_ACTIVE': return { color: 'bg-red-100 text-red-700 border-red-200', icon: <XCircle size={16} />, label: 'ACCESS DENIED' };
+      default: return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: <XCircle size={16} />, label: 'UNKNOWN' };
+    }
+  };
+
+  const statusUI = getStatusBadge(userData.status);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
       {/* Header Navigation */}
@@ -75,9 +87,9 @@ const UserDetail = () => {
         </button>
         
         <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100">
-          <div className={`w-2.5 h-2.5 rounded-full ${userData.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+          <div className={`w-2.5 h-2.5 rounded-full ${userData.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
           <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">
-            {userData.isActive ? 'Active Member' : 'Account Deactivated'}
+            {userData.status === 'ACTIVE' ? 'Active Member' : `Status: ${userData.status.replace('_', ' ')}`}
           </span>
         </div>
       </div>
@@ -114,7 +126,7 @@ const UserDetail = () => {
               <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-2">
                 <h2 className="text-4xl font-black text-gray-900 tracking-tight">{userData.name}</h2>
                 <span className={`inline-flex self-center md:self-auto items-center px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest mt-2 md:mt-0 ${
-                  userData.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                  userData.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userData.role === 'OPERATOR' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
                 }`}>
                   {userData.role}
                 </span>
@@ -144,24 +156,20 @@ const UserDetail = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Account Status</span>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                    userData.isActive 
-                      ? 'bg-green-100 text-green-700 border border-green-200' 
-                      : 'bg-red-100 text-red-700 border border-red-200'
-                  }`}>
-                    {userData.isActive ? 'Active' : 'Inactive'}
+                  <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${statusUI.color}`}>
+                    {userData.status.replace('_', ' ')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">System Access</span>
-                  <span className={`flex items-center space-x-1.5 font-black text-sm ${userData.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                    {userData.isActive ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                    <span>{userData.isActive ? 'AUTHORIZED' : 'ACCESS DENIED'}</span>
+                  <span className={`flex items-center space-x-1.5 font-black text-sm ${userData.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'}`}>
+                    {statusUI.icon}
+                    <span>{statusUI.label}</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Role Level</span>
-                  <span className="text-gray-900 font-black text-sm">{userData.role === 'ADMIN' ? 'MASTER PRIVILEGE' : 'STANDARD ACCESS'}</span>
+                  <span className="text-gray-900 font-black text-sm">{userData.role === 'ADMIN' ? 'MASTER PRIVILEGE' : userData.role === 'OPERATOR' ? 'OPERATOR ACCESS' : 'STANDARD ACCESS'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Login Device</span>

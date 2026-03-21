@@ -9,20 +9,34 @@ datasource db {
   provider = "postgresql"
 }
 
+model Role {
+  id    String @id @default(uuid())
+  name  String @unique // ADMIN, USER, OPERATOR
+  users User[]
+}
+
+model Status {
+  id    String @id @default(uuid())
+  name  String @unique // ACTIVE, NOT_ACTIVE, SUSPEND
+  users User[]
+}
+
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("USER") // USER or ADMIN
-  avatar    String?  // Field for profile picture path
-  isActive  Boolean  @default(true) // User status: Active or Not Active
-  deviceInfo String? // Stored parsed device info (Browser, OS, Type)
-  lastLogin DateTime? // Field for tracking last login time
-  lastSessionId String? // To enforce one session per user
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  AuthLog   AuthLog[]
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  password       String
+  roleId         String
+  role           Role      @relation(fields: [roleId], references: [id])
+  statusId       String
+  status         Status    @relation(fields: [statusId], references: [id])
+  avatar         String?   // Field for profile picture path
+  deviceInfo     String?   // Stored parsed device info (Browser, OS, Type)
+  lastLogin      DateTime? // Field for tracking last login time
+  lastSessionId  String?   // To enforce one session per user
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  AuthLog        AuthLog[]
 }
 
 model AuthLog {
