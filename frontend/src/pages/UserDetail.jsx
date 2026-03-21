@@ -67,9 +67,9 @@ const UserDetail = () => {
         </button>
         
         <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100">
-          <div className={`w-2.5 h-2.5 rounded-full ${userData.lastLogin ? 'bg-green-500' : 'bg-gray-300'} animate-pulse`}></div>
+          <div className={`w-2.5 h-2.5 rounded-full ${userData.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
           <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">
-            {userData.lastLogin ? 'Active Member' : 'Inactive'}
+            {userData.isActive ? 'Active Member' : 'Account Deactivated'}
           </span>
         </div>
       </div>
@@ -146,9 +146,9 @@ const UserDetail = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">System Access</span>
-                  <span className="flex items-center space-x-1.5 text-green-600 font-black text-sm">
-                    <CheckCircle2 size={16} />
-                    <span>AUTHORIZED</span>
+                  <span className={`flex items-center space-x-1.5 font-black text-sm ${userData.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                    {userData.isActive ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                    <span>{userData.isActive ? 'AUTHORIZED' : 'ACCESS DENIED'}</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
