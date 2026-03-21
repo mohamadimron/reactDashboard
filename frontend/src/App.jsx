@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import UserDetail from './pages/UserDetail';
+import AuthLogs from './pages/AuthLogs';
 import Profile from './pages/Profile';
 import SessionExpiredModal from './components/SessionExpiredModal';
 
@@ -41,6 +42,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin={true}>
                     <UserDetail />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="logs" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AuthLogs />
                   </ProtectedRoute>
                 } 
               />

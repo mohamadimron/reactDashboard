@@ -22,4 +22,27 @@ model User {
   lastSessionId String? // To enforce one session per user
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  AuthLog   AuthLog[]
+}
+
+model AuthLog {
+  id             String   @id @default(uuid())
+  userId         String?
+  usernameInput  String   // The email/username entered by user
+  eventType      String   // LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT
+  failureReason  String?  // WRONG_PASSWORD, USER_NOT_FOUND, ACCOUNT_INACTIVE
+  ipAddress      String
+  userAgent      String   
+  deviceType     String
+  browser        String
+  os             String
+  deviceId       String?  // Fingerprint hash
+  isNewDevice    Boolean  @default(false)
+  isSuspicious   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([usernameInput])
+  @@index([ipAddress])
+  @@index([createdAt])
 }

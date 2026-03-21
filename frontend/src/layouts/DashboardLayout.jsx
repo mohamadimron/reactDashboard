@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../services/api';
-import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -19,6 +19,7 @@ const DashboardLayout = () => {
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
     { to: '/dashboard/profile', label: 'My Profile', icon: User, adminOnly: false },
     { to: '/dashboard/users', label: 'User Management', icon: Users, adminOnly: true },
+    { to: '/dashboard/logs', label: 'Auth Logs', icon: ClipboardList, adminOnly: true },
   ];
 
   const filteredLinks = navLinks.filter(link => !link.adminOnly || user?.role === 'ADMIN');
