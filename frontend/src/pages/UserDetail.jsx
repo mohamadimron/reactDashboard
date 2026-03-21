@@ -4,7 +4,7 @@ import api, { API_URL } from '../services/api';
 import { 
   ArrowLeft, Mail, Shield, Calendar, Clock, 
   User as UserIcon, CheckCircle2, XCircle, 
-  Search, Maximize2, X
+  Search, Maximize2, X, Monitor, Smartphone, Tablet, Cpu
 } from 'lucide-react';
 
 const UserDetail = () => {
@@ -51,6 +51,14 @@ const UserDetail = () => {
   }
 
   const avatarUrl = userData.avatar ? `${API_URL}${userData.avatar}` : null;
+
+  const getDeviceIcon = (info) => {
+    if (!info) return <Cpu size={16} />;
+    const lower = info.toLowerCase();
+    if (lower.includes('mobile')) return <Smartphone size={16} />;
+    if (lower.includes('tablet')) return <Tablet size={16} />;
+    return <Monitor size={16} />;
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
@@ -154,6 +162,17 @@ const UserDetail = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Role Level</span>
                   <span className="text-gray-900 font-black text-sm">{userData.role === 'ADMIN' ? 'MASTER PRIVILEGE' : 'STANDARD ACCESS'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Login Device</span>
+                  <span className="flex items-center space-x-2 text-gray-700 font-bold text-sm">
+                    <span className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
+                      {getDeviceIcon(userData.deviceInfo)}
+                    </span>
+                    <span className="truncate max-w-[150px]" title={userData.deviceInfo || 'Not recorded'}>
+                      {userData.deviceInfo || 'Not recorded'}
+                    </span>
+                  </span>
                 </div>
               </div>
             </div>

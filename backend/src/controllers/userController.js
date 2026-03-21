@@ -22,7 +22,7 @@ const getUsers = async (req, res) => {
       skip,
       take: limit,
       select: {
-        id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true
+        id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true
       },
       orderBy: { updatedAt: 'desc' }
       });
@@ -47,7 +47,7 @@ const getUserById = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -75,7 +75,7 @@ const createUser = async (req, res) => {
         role: role || 'USER',
         isActive: isActive !== undefined ? isActive : true
       },
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     res.status(201).json(user);
@@ -103,7 +103,7 @@ const updateUser = async (req, res) => {
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, isActive: true, deviceInfo: true, lastLogin: true, createdAt: true, updatedAt: true }
     });
 
     res.json(user);

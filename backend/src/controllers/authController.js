@@ -91,12 +91,24 @@ const login = async (req, res) => {
     const sessionId = require('crypto').randomUUID();
     const token = generateToken(user.id, user.role, sessionId);
 
-    // Update last login and session ID
+    // Device Detection Logic
+    const UAParser = require('ua-parser-js');
+    const parser = new UAParser(req.headers['user-agent']);
+    const result = parser.getResult();
+    
+    // Format: "Browser (OS) - DeviceType"
+    const browser = result.browser.name || 'Unknown Browser';
+    const os = result.os.name || 'Unknown OS';
+    const deviceType = result.device.type ? result.device.type.charAt(0).toUpperCase() + result.device.type.slice(1) : 'Desktop';
+    const deviceInfo = `${browser} on ${os} (${deviceType})`;
+
+    // Update last login, session ID, and device info
     await prisma.user.update({
       where: { id: user.id },
       data: { 
         lastLogin: new Date(),
-        lastSessionId: sessionId
+        lastSessionId: sessionId,
+        deviceInfo: deviceInfo
       }
     });
 
