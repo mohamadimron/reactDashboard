@@ -212,7 +212,7 @@ const Users = () => {
           <h3 className="text-2xl font-black text-gray-900 tracking-tight">System Directory</h3>
           <p className="text-sm text-gray-500 font-medium">Manage user accounts, roles, and access levels</p>
         </div>
-        {perms.canEditUsers && (
+        {perms.canCreateUsers && (
           <button
             onClick={() => openModal()}
             disabled={isOptionsLoading}

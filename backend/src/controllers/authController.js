@@ -77,6 +77,7 @@ const register = async (req, res) => {
       role: user.role.name,
       permissions: {
         canViewUsers: user.role.canViewUsers,
+        canCreateUsers: user.role.canCreateUsers,
         canEditUsers: user.role.canEditUsers,
         canDeleteUsers: user.role.canDeleteUsers,
         canViewLogs: user.role.canViewLogs,
@@ -148,6 +149,7 @@ const login = async (req, res) => {
       role: user.role.name,
       permissions: {
         canViewUsers: user.role.canViewUsers,
+        canCreateUsers: user.role.canCreateUsers,
         canEditUsers: user.role.canEditUsers,
         canDeleteUsers: user.role.canDeleteUsers,
         canViewLogs: user.role.canViewLogs,

@@ -52,12 +52,13 @@ const deleteRole = async (req, res) => {
 const updateRolePermissions = async (req, res) => {
   try {
     const { id } = req.params;
-    const { canViewUsers, canEditUsers, canDeleteUsers, canViewLogs, canManageSettings } = req.body;
+    const { canViewUsers, canCreateUsers, canEditUsers, canDeleteUsers, canViewLogs, canManageSettings } = req.body;
 
     const role = await prisma.role.update({
       where: { id },
       data: {
         canViewUsers,
+        canCreateUsers,
         canEditUsers,
         canDeleteUsers,
         canViewLogs,

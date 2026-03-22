@@ -21,6 +21,7 @@ async function migrate() {
     where: { name: 'ADMIN' },
     data: {
       canViewUsers: true,
+      canCreateUsers: true,
       canEditUsers: true,
       canDeleteUsers: true,
       canViewLogs: true,
@@ -33,6 +34,7 @@ async function migrate() {
     where: { name: 'OPERATOR' },
     data: {
       canViewUsers: true,
+      canCreateUsers: true,
       canEditUsers: true,
       canDeleteUsers: false,
       canViewLogs: false,
@@ -45,6 +47,7 @@ async function migrate() {
     where: { name: 'USER' },
     data: {
       canViewUsers: false,
+      canCreateUsers: false,
       canEditUsers: false,
       canDeleteUsers: false,
       canViewLogs: false,

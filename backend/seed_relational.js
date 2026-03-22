@@ -21,17 +21,41 @@ async function seed() {
   const adminRole = await prisma.role.upsert({
     where: { name: 'ADMIN' },
     update: {},
-    create: { name: 'ADMIN' },
+    create: { 
+      name: 'ADMIN', 
+      canViewUsers: true, 
+      canCreateUsers: true, 
+      canEditUsers: true, 
+      canDeleteUsers: true, 
+      canViewLogs: true, 
+      canManageSettings: true 
+    },
   });
   const userRole = await prisma.role.upsert({
     where: { name: 'USER' },
     update: {},
-    create: { name: 'USER' },
+    create: { 
+      name: 'USER',
+      canViewUsers: false,
+      canCreateUsers: false,
+      canEditUsers: false,
+      canDeleteUsers: false,
+      canViewLogs: false,
+      canManageSettings: false
+    },
   });
   const operatorRole = await prisma.role.upsert({
     where: { name: 'OPERATOR' },
     update: {},
-    create: { name: 'OPERATOR' },
+    create: { 
+      name: 'OPERATOR',
+      canViewUsers: true,
+      canCreateUsers: true,
+      canEditUsers: true,
+      canDeleteUsers: false,
+      canViewLogs: false,
+      canManageSettings: false
+    },
   });
 
   // 2. Seed Statuses

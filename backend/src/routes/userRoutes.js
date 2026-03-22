@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.route('/')
   .get(protect, checkPermission('canViewUsers'), getUsers)
-  .post(protect, checkPermission('canEditUsers'), createUser);
+  .post(protect, checkPermission('canCreateUsers'), createUser);
 
 router.route('/roles').get(protect, checkPermission('canViewUsers'), getRoles);
 router.route('/statuses').get(protect, checkPermission('canViewUsers'), getStatuses);

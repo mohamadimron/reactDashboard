@@ -85,6 +85,7 @@ const Settings = () => {
     try {
       await api.put(`/roles/${role.id}/permissions`, {
         canViewUsers: role.canViewUsers,
+        canCreateUsers: role.canCreateUsers,
         canEditUsers: role.canEditUsers,
         canDeleteUsers: role.canDeleteUsers,
         canViewLogs: role.canViewLogs,
@@ -231,6 +232,7 @@ const Settings = () => {
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <PermissionToggle label="View Directory" active={role.canViewUsers} onClick={() => handleTogglePermission(role.id, 'canViewUsers')} />
+                    <PermissionToggle label="Register Member" active={role.canCreateUsers} onClick={() => handleTogglePermission(role.id, 'canCreateUsers')} />
                     <PermissionToggle label="Modify Data" active={role.canEditUsers} onClick={() => handleTogglePermission(role.id, 'canEditUsers')} />
                     <PermissionToggle label="Delete Accounts" active={role.canDeleteUsers} onClick={() => handleTogglePermission(role.id, 'canDeleteUsers')} />
                   </div>
