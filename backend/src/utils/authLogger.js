@@ -1,10 +1,10 @@
 const prisma = require('./db');
 const UAParser = require('ua-parser-js');
 const crypto = require('crypto');
+const axios = require('axios');
 
 /**
  * Logs an authentication event asynchronously.
- * @param {Object} params - Logging data
  */
 const logAuthEvent = async ({
   userId = null,
@@ -18,43 +18,53 @@ const logAuthEvent = async ({
     const parser = new UAParser(rawUA);
     const uaResult = parser.getResult();
     
-    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+    let ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+    if (ipAddress.includes(',')) ipAddress = ipAddress.split(',')[0].trim(); // Handle multiple IPs in proxy
+    if (ipAddress === '::1' || ipAddress === '127.0.0.1') ipAddress = 'Localhost';
+
     const browser = uaResult.browser.name || 'Unknown';
     const os = uaResult.os.name || 'Unknown';
     const deviceType = uaResult.device.type ? uaResult.device.type.charAt(0).toUpperCase() + uaResult.device.type.slice(1) : 'Desktop';
     
-    // Generate a simple device ID based on UA and IP (can be more complex in prod)
     const deviceId = crypto.createHash('md5').update(`${rawUA}-${ipAddress}`).digest('hex');
 
-    let isNewDevice = false;
-    let isSuspicious = false;
+    // Fetch Geo & ISP Info
+    let isp = 'Internal Network';
+    let country = 'Local';
+    
+    if (ipAddress !== 'Localhost') {
+      try {
+        // Requesting country name along with ISP
+        const response = await axios.get(`http://ip-api.com/json/${ipAddress}?fields=status,country,isp`);
+        if (response.data && response.data.status === 'success') {
+          isp = response.data.isp;
+          country = response.data.country;
+        }
+      } catch (ispErr) {
+        console.warn(`[AuthLogger] Geo lookup failed for ${ipAddress}:`, ispErr.message);
+      }
+    }
 
+    let isNewDevice = false;
     if (userId && eventType === 'LOGIN_SUCCESS') {
-      // Check if this combination of user and device ID has been seen before
       const existingDevice = await prisma.authLog.findFirst({
         where: { userId, deviceId, eventType: 'LOGIN_SUCCESS' }
       });
       isNewDevice = !existingDevice;
     }
 
-    // Suspicious detection: > 5 failures in 5 minutes for this username or IP
+    // Suspicious detection
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const failureCount = await prisma.authLog.count({
       where: {
-        OR: [
-          { usernameInput: usernameInput },
-          { ipAddress: ipAddress }
-        ],
+        OR: [{ usernameInput }, { ipAddress }],
         eventType: 'LOGIN_FAILED',
         createdAt: { gte: fiveMinutesAgo }
       }
     });
 
-    if (failureCount >= 5) {
-      isSuspicious = true;
-    }
+    const isSuspicious = failureCount >= 5;
 
-    // Atomic creation
     await prisma.authLog.create({
       data: {
         userId,
@@ -67,14 +77,15 @@ const logAuthEvent = async ({
         browser,
         os,
         deviceId,
+        isp,
+        country,
         isNewDevice,
         isSuspicious
       }
     });
 
   } catch (error) {
-    // Non-blocking but logged to console
-    console.error('[AuthLogger] Failed to create log:', error.message);
+    console.error('[AuthLogger] Critical logging failure:', error.stack);
   }
 };
 

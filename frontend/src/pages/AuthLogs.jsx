@@ -184,7 +184,7 @@ const AuthLogs = () => {
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Login Input</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Event</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Device & Browser</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">IP Address</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Connection (IP/ISP)</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Risk Status</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
               </tr>
@@ -239,7 +239,21 @@ const AuthLogs = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-600">{log.ipAddress}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-mono font-bold text-gray-700">{log.ipAddress}</span>
+                          {log.country && log.country !== 'Local' && (
+                            <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-gray-200">
+                              {log.country}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-black text-blue-600 uppercase truncate max-w-[150px]" title={`${log.isp} (${log.country})`}>
+                          {log.isp || 'Internal Network'}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col space-y-1">
                         {log.isSuspicious && (
@@ -359,6 +373,16 @@ const AuthLogs = () => {
                   <div className="p-4 flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500">IP Address</span>
                     <span className="text-sm font-mono font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded-lg">{selectedLog.ipAddress}</span>
+                  </div>
+                  <div className="p-4 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500">Service Provider (ISP)</span>
+                    <span className="text-sm font-black text-blue-600 uppercase text-right max-w-[200px] break-words">{selectedLog.isp || 'Internal Network'}</span>
+                  </div>
+                  <div className="p-4 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500">Country of Origin</span>
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest bg-gray-100 text-gray-700 border border-gray-200">
+                      {selectedLog.country || 'Local Network'}
+                    </span>
                   </div>
                   <div className="p-4 flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500">Access Timestamp</span>
