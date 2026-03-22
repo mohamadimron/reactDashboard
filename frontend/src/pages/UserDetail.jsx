@@ -72,6 +72,18 @@ const UserDetail = () => {
 
   const statusUI = getStatusBadge(userData.status);
 
+  const getUserOnlineStatus = (lastActivity) => {
+    if (!lastActivity) return { text: 'Offline', color: 'bg-gray-400' };
+    const now = new Date();
+    const activityDate = new Date(lastActivity);
+    const diffInMinutes = Math.floor((now - activityDate) / 60000);
+    if (diffInMinutes < 5) return { text: 'Active Now', color: 'bg-green-500' };
+    if (diffInMinutes < 60) return { text: `Active ${diffInMinutes}m ago`, color: 'bg-amber-400' };
+    return { text: 'Offline', color: 'bg-gray-400' };
+  };
+
+  const onlineStatus = getUserOnlineStatus(userData.lastActivity);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
       {/* Header Navigation */}
@@ -87,9 +99,9 @@ const UserDetail = () => {
         </button>
         
         <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100">
-          <div className={`w-2.5 h-2.5 rounded-full ${userData.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+          <div className={`w-2.5 h-2.5 rounded-full ${onlineStatus.color} ${onlineStatus.text === 'Active Now' ? 'animate-pulse' : ''}`}></div>
           <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">
-            {userData.status === 'ACTIVE' ? 'Active Member' : `Status: ${userData.status.replace('_', ' ')}`}
+            {onlineStatus.text === 'Active Now' ? 'Active Member' : onlineStatus.text}
           </span>
         </div>
       </div>
@@ -171,16 +183,27 @@ const UserDetail = () => {
                   <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Role Level</span>
                   <span className="text-gray-900 font-black text-sm">{userData.role === 'ADMIN' ? 'MASTER PRIVILEGE' : userData.role === 'OPERATOR' ? 'OPERATOR ACCESS' : 'STANDARD ACCESS'}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500 font-bold text-sm uppercase tracking-wider">Login Device</span>
-                  <span className="flex items-center space-x-2 text-gray-700 font-bold text-sm">
-                    <span className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
+
+                {/* Redesigned Login Device Section */}
+                <div className="pt-4 mt-4 border-t border-gray-100/50">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-gray-500 font-bold text-[10px] uppercase tracking-widest">Last Known Device</span>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4 flex items-start space-x-4 shadow-sm group hover:border-blue-100 transition-colors">
+                    <div className="p-3 bg-blue-50 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-inner">
                       {getDeviceIcon(userData.deviceInfo)}
-                    </span>
-                    <span className="truncate max-w-[150px]" title={userData.deviceInfo || 'Not recorded'}>
-                      {userData.deviceInfo || 'Not recorded'}
-                    </span>
-                  </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-gray-900 leading-tight break-words">
+                        {userData.deviceInfo || 'No device data recorded'}
+                      </p>
+                      <div className="flex items-center mt-1 space-x-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter flex items-center">
+                          <Shield size={10} className="mr-1" /> Verified Session
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

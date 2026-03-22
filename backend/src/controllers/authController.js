@@ -42,6 +42,12 @@ const register = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     const sessionId = require('crypto').randomUUID();
     
+    // Device Detection for Registration
+    const UAParser = require('ua-parser-js');
+    const parser = new UAParser(req.headers['user-agent']);
+    const ua = parser.getResult();
+    const deviceInfo = `${ua.browser.name || 'Unknown'} ${ua.browser.version || ''} on ${ua.os.name || 'Unknown'} ${ua.os.version || ''} (${ua.device.type ? ua.device.type.charAt(0).toUpperCase() + ua.device.type.slice(1) : 'Desktop'})`;
+
     const user = await prisma.user.create({
       data: { 
         name, 
@@ -49,7 +55,8 @@ const register = async (req, res) => {
         password: hashedPassword, 
         roleId: role.id,
         statusId: status.id,
-        lastSessionId: sessionId 
+        lastSessionId: sessionId,
+        deviceInfo: deviceInfo 
       },
       include: { role: true, status: true }
     });
@@ -114,9 +121,15 @@ const login = async (req, res) => {
     const sessionId = require('crypto').randomUUID();
     const token = generateToken(user.id, user.role.name, sessionId);
 
+    // Device Detection for Login
+    const UAParser = require('ua-parser-js');
+    const parser = new UAParser(req.headers['user-agent']);
+    const ua = parser.getResult();
+    const deviceInfo = `${ua.browser.name || 'Unknown'} ${ua.browser.version || ''} on ${ua.os.name || 'Unknown'} ${ua.os.version || ''} (${ua.device.type ? ua.device.type.charAt(0).toUpperCase() + ua.device.type.slice(1) : 'Desktop'})`;
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date(), lastSessionId: sessionId }
+      data: { lastLogin: new Date(), lastSessionId: sessionId, deviceInfo: deviceInfo }
     });
 
     logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_SUCCESS', req });
@@ -138,12 +151,21 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    
     if (user) {
       logAuthEvent({ userId: user.id, usernameInput: user.email, eventType: 'LOGOUT', req });
+      
+      // Force offline status on logout
+      await prisma.user.update({
+        where: { id: userId },
+        data: { lastActivity: null }
+      });
     }
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
+    console.error('[Auth] Logout Error:', error);
     res.status(500).json({ message: 'Server Error during logout' });
   }
 };

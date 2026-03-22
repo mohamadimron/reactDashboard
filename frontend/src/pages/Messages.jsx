@@ -157,6 +157,20 @@ const Messages = () => {
 
   const activeChatUser = conversations.find(c => c.user.id === activeTab)?.user;
 
+  const getUserOnlineStatus = (lastActivity) => {
+    if (!lastActivity) return { text: 'Offline', color: 'bg-gray-400' };
+    
+    const now = new Date();
+    const activityDate = new Date(lastActivity);
+    const diffInMinutes = Math.floor((now - activityDate) / 60000);
+
+    if (diffInMinutes < 5) return { text: 'Active Now', color: 'bg-green-500' };
+    if (diffInMinutes < 60) return { text: `Active ${diffInMinutes}m ago`, color: 'bg-amber-400' };
+    return { text: 'Offline', color: 'bg-gray-400' };
+  };
+
+  const statusInfo = getUserOnlineStatus(activeChatUser?.lastActivity);
+
   return (
     <div className="h-[calc(100vh-160px)] flex bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-500">
       {/* Sidebar */}
@@ -278,7 +292,10 @@ const Messages = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-gray-900">{activeChatUser?.name}</h3>
-                  <div className="flex items-center space-x-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Now</span></div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.color} ${statusInfo.text === 'Active Now' ? 'animate-pulse' : ''}`}></span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{statusInfo.text}</span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">

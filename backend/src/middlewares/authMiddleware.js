@@ -21,6 +21,12 @@ const protect = async (req, res, next) => {
         });
       }
 
+      // Asynchronously update last activity (non-blocking)
+      prisma.user.update({
+        where: { id: decoded.userId },
+        data: { lastActivity: new Date() }
+      }).catch(err => console.error('[Activity] Update failed:', err.message));
+
       req.user = decoded; // { userId, role, sessionId }
       next();
     } catch (error) {

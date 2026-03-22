@@ -3,7 +3,7 @@ import api from '../services/api';
 import { 
   ShieldAlert, ShieldCheck, LogOut, Info, Search, 
   Filter, Calendar, ChevronLeft, ChevronRight, Monitor, 
-  Smartphone, Tablet, Cpu, AlertTriangle, Eye, X, Trash2
+  Smartphone, Tablet, Cpu, AlertTriangle, Eye, X, Trash2, User as UserIcon
 } from 'lucide-react';
 
 const AuthLogs = () => {
@@ -309,38 +309,98 @@ const AuthLogs = () => {
       {/* Log Detail Modal */}
       {isDetailOpen && selectedLog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsDetailOpen(false)}></div>
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Log Metadata</h3>
-                <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+          <div 
+            className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-300" 
+            onClick={() => setIsDetailOpen(false)}
+          />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden border border-gray-100 animate-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div>
+                  <h3 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                    <ShieldCheck className="text-blue-400" size={24} />
+                    Audit Entry Details
+                  </h3>
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Ref ID: {selectedLog.id.substring(0, 13)}...</p>
+                </div>
+                <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
                   <X size={20} />
                 </button>
               </div>
+            </div>
 
-              <div className="space-y-6">
+            <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+              {/* Event Summary Section */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Raw User Agent String</span>
-                  <p className="text-xs font-mono text-gray-600 leading-relaxed break-all">
-                    {selectedLog.userAgent}
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Event Type</span>
+                  <div className="mt-1">{getEventBadge(selectedLog.eventType)}</div>
+                </div>
+                <div className={`p-4 rounded-2xl border ${selectedLog.isSuspicious ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
+                  <span className={`block text-[10px] font-black uppercase tracking-widest mb-1 ${selectedLog.isSuspicious ? 'text-red-400' : 'text-blue-400'}`}>Risk Analysis</span>
+                  <p className={`text-sm font-black mt-1 ${selectedLog.isSuspicious ? 'text-red-600' : 'text-blue-600'}`}>
+                    {selectedLog.isSuspicious ? 'SUSPICIOUS ACTIVITY' : 'SECURE SESSION'}
                   </p>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm font-bold">
-                  <div>
-                    <span className="text-[10px] font-black text-gray-400 uppercase">Device ID (Fingerprint)</span>
-                    <p className="text-gray-900 font-mono text-xs mt-1">{selectedLog.deviceId}</p>
+              {/* User & Network Section */}
+              <div className="space-y-4">
+                <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <UserIcon size={14} className="text-blue-600" /> Identity & Network
+                </h4>
+                <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-50 shadow-sm overflow-hidden">
+                  <div className="p-4 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500">Username Input</span>
+                    <span className="text-sm font-black text-gray-900">{selectedLog.usernameInput}</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black text-gray-400 uppercase">Browser Engine</span>
-                    <p className="text-gray-900 mt-1">{selectedLog.browser}</p>
+                  <div className="p-4 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500">IP Address</span>
+                    <span className="text-sm font-mono font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded-lg">{selectedLog.ipAddress}</span>
+                  </div>
+                  <div className="p-4 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500">Access Timestamp</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {new Date(selectedLog.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Device Analysis Section */}
+              <div className="space-y-4">
+                <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Monitor size={14} className="text-blue-600" /> Device Fingerprint
+                </h4>
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm text-blue-600">
+                      {getDeviceIcon(selectedLog.deviceType)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-gray-900 leading-tight">{selectedLog.browser} on {selectedLog.os}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">{selectedLog.deviceType} Environment</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-inner">
+                    <span className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Raw User Agent Header</span>
+                    <p className="text-[10px] font-mono text-gray-500 leading-relaxed break-all">
+                      {selectedLog.userAgent}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 p-6 text-center border-t border-gray-100">
-              <p className="text-xs font-bold text-gray-400">Security audit generated automatically by AuthEngine</p>
+
+            <div className="bg-gray-50 p-6 flex justify-center border-t border-gray-100">
+              <button 
+                onClick={() => setIsDetailOpen(false)}
+                className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
+              >
+                Close Audit Record
+              </button>
             </div>
           </div>
         </div>

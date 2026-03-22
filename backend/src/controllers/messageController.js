@@ -57,8 +57,8 @@ const getConversations = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        sender: { select: { id: true, name: true, email: true, avatar: true } },
-        receiver: { select: { id: true, name: true, email: true, avatar: true } }
+        sender: { select: { id: true, name: true, email: true, avatar: true, lastActivity: true } },
+        receiver: { select: { id: true, name: true, email: true, avatar: true, lastActivity: true } }
       }
     });
 

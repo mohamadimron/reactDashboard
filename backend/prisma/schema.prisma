@@ -33,6 +33,7 @@ model User {
   isActive       Boolean   @default(true) // User status: Active or Not Active
   deviceInfo     String?   // Stored parsed device info (Browser, OS, Type)
   lastLogin      DateTime? // Field for tracking last login time
+  lastActivity   DateTime? // Field for tracking real-time activity status
   lastSessionId  String?   // To enforce one session per user
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

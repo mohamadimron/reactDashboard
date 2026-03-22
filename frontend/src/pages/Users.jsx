@@ -187,6 +187,16 @@ const Users = () => {
     }
   };
 
+  const getUserOnlineStatus = (lastActivity) => {
+    if (!lastActivity) return { text: 'Offline', color: 'bg-gray-400' };
+    const now = new Date();
+    const activityDate = new Date(lastActivity);
+    const diffInMinutes = Math.floor((now - activityDate) / 60000);
+    if (diffInMinutes < 5) return { text: 'Active Now', color: 'bg-green-500' };
+    if (diffInMinutes < 60) return { text: `Active ${diffInMinutes}m ago`, color: 'bg-amber-400' };
+    return { text: 'Offline', color: 'bg-gray-400' };
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -322,17 +332,23 @@ const Users = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-700 font-bold">
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                        </span>
-                        {user.lastLogin && (
-                          <span className="text-[10px] text-gray-400 font-black">
-                            {new Date(user.lastLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const status = getUserOnlineStatus(user.lastActivity);
+                        return (
+                          <div className="flex flex-col">
+                            <span className={`text-sm font-bold ${status.text === 'Active Now' ? 'text-green-600' : 'text-gray-700'}`}>
+                              {status.text}
+                            </span>
+                            {user.lastLogin && (
+                              <span className="text-[10px] text-gray-400 font-black uppercase">
+                                Last: {new Date(user.lastLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end items-center space-x-3">
                         <Link 
