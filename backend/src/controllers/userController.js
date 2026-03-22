@@ -266,17 +266,71 @@ const updatePassword = async (req, res) => {
 };
 
 const uploadAvatar = async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const sharp = require('sharp');
+
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const avatarPath = `/uploads/${req.file.filename}`;
+
+    const userId = req.user.userId;
+    const originalPath = req.file.path;
+    const compressedFilename = `avatar-optimized-${Date.now()}.webp`;
+    const compressedPath = path.join(process.cwd(), 'uploads', compressedFilename);
+    const dbAvatarPath = `/uploads/${compressedFilename}`;
+
+    console.log(`[Image] Processing ${req.file.size} bytes for user ${userId}`);
+
+    // Compression & High-Quality Resizing
+    // We use a slightly lower quality (75) to ensure it stays well under 100KB 
+    // while maintaining excellent visual clarity
+    await sharp(originalPath)
+      .resize(400, 400, { 
+        fit: 'cover', 
+        position: 'center' 
+      })
+      .webp({ 
+        quality: 75,
+        effort: 6 // Higher effort for better compression
+      })
+      .toFile(compressedPath);
+
+    // Verify file was created and is within limits (informational log)
+    const stats = fs.statSync(compressedPath);
+    console.log(`[Image] Compressed successfully: ${stats.size} bytes`);
+
+    // Remove temp original file
+    try { 
+      if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath); 
+    } catch (e) {
+      console.warn('[Image] Temp file cleanup failed:', e.message);
+    }
+
+    // Delete old avatar from disk
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (currentUser && currentUser.avatar) {
+      const oldPath = path.join(process.cwd(), currentUser.avatar.replace(/^\//, ''));
+      try { 
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+          console.log('[Image] Old avatar removed');
+        }
+      } catch (e) {
+        console.warn('[Image] Old file cleanup skipped:', e.message);
+      }
+    }
+
     const user = await prisma.user.update({
-      where: { id: req.user.userId },
-      data: { avatar: avatarPath },
+      where: { id: userId },
+      data: { avatar: dbAvatarPath },
       include: { role: true, status: true }
     });
+
+    console.log('[Image] Profile updated with optimized avatar');
     res.json({ ...user, role: user.role.name, status: user.status.name });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
+    console.error('[Image] Processing Error:', error);
+    res.status(500).json({ message: 'Error processing image. Ensure it is a valid format.' });
   }
 };
 

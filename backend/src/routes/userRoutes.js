@@ -23,7 +23,14 @@ router.route('/profile/password')
   .put(protect, updatePassword);
 
 router.route('/profile/avatar')
-  .put(protect, upload.single('avatar'), uploadAvatar);
+  .put(protect, (req, res, next) => {
+    upload.single('avatar')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  }, uploadAvatar);
 
 router.route('/:id')
   .get(protect, getUserById)
