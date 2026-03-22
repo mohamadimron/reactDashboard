@@ -6,23 +6,32 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('Dashboard: Component rendering', { loading, hasStats: !!stats });
+
   useEffect(() => {
     const fetchStats = async () => {
+      console.log('Dashboard: Fetching stats...');
       try {
         const response = await api.get('/users/stats');
+        console.log('Dashboard: Stats received', response.data);
         setStats(response.data);
       } catch (error) {
-        console.error('Failed to fetch stats', error);
+        console.error('Dashboard: Failed to fetch stats', error);
       } finally {
         setLoading(false);
+        console.log('Dashboard: Loading set to false');
       }
     };
 
     fetchStats();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    console.log('Dashboard: Rendering loading state');
+    return <div>Loading Dashboard Data...</div>;
+  }
 
+  console.log('Dashboard: Rendering main content');
   return (
     <div>
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Overview</h3>

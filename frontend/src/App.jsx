@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import UserDetail from './pages/UserDetail';
 import AuthLogs from './pages/AuthLogs';
+import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import SessionExpiredModal from './components/SessionExpiredModal';
 
@@ -29,6 +30,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="messages" element={<Messages />} />
               <Route 
                 path="users" 
                 element={

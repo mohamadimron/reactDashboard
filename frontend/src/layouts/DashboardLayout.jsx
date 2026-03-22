@@ -1,14 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../services/api';
-import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList } from 'lucide-react';
+import api, { API_URL } from '../services/api';
+import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList, MessageSquare } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadTotal, setUnreadTotal] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/messages');
+      const data = Array.isArray(res.data) ? res.data : [];
+      const total = data.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+      setUnreadTotal(total);
+    } catch (err) {
+      console.error('Failed to fetch unread count', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    
+    // Listen for manual refresh events (e.g. from Messages page)
+    const handleRefresh = () => fetchUnreadCount();
+    window.addEventListener('refresh-unread', handleRefresh);
+    
+    const interval = setInterval(fetchUnreadCount, 20000); // Poll every 20s
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refresh-unread', handleRefresh);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -18,6 +44,7 @@ const DashboardLayout = () => {
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
     { to: '/dashboard/profile', label: 'My Profile', icon: User, adminOnly: false },
+    { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, adminOnly: false },
     { to: '/dashboard/users', label: 'User Management', icon: Users, adminOnly: true },
     { to: '/dashboard/logs', label: 'Auth Logs', icon: ClipboardList, adminOnly: true },
   ];
@@ -40,7 +67,12 @@ const DashboardLayout = () => {
           <link.icon size={20} className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-600'} />
           <span className="font-semibold text-sm">{link.label}</span>
         </div>
-        {isActive && <ChevronRight size={14} className="text-white opacity-70" />}
+        {link.to === '/dashboard/messages' && unreadTotal > 0 && (
+          <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-bounce">
+            {unreadTotal > 9 ? '9+' : unreadTotal}
+          </span>
+        )}
+        {isActive && link.to !== '/dashboard/messages' && <ChevronRight size={14} className="text-white opacity-70" />}
       </Link>
     );
   };

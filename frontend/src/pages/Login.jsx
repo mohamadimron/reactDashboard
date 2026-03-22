@@ -11,6 +11,7 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
+  console.log('Login: Component rendering');
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -24,11 +25,14 @@ const Login = () => {
   });
 
   const onSubmit = async (data) => {
+    console.log('Login: Submit triggered', data.email);
     try {
       setError('');
       await login(data.email, data.password);
+      console.log('Login: Success, navigating to dashboard');
       navigate('/dashboard');
     } catch (err) {
+      console.error('Login: Error', err);
       setError(err.response?.data?.message || 'Failed to login');
     }
   };

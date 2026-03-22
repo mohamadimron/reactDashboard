@@ -20,7 +20,6 @@ model Status {
   name  String @unique // ACTIVE, NOT_ACTIVE, SUSPEND
   users User[]
 }
-
 model User {
   id             String    @id @default(uuid())
   name           String
@@ -31,13 +30,32 @@ model User {
   statusId       String
   status         Status    @relation(fields: [statusId], references: [id])
   avatar         String?   // Field for profile picture path
+  isActive       Boolean   @default(true) // User status: Active or Not Active
   deviceInfo     String?   // Stored parsed device info (Browser, OS, Type)
   lastLogin      DateTime? // Field for tracking last login time
   lastSessionId  String?   // To enforce one session per user
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   AuthLog        AuthLog[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 }
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content     String   
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
 
 model AuthLog {
   id             String   @id @default(uuid())

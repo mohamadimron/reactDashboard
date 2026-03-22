@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses } = require('../controllers/userController');
+const { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses, searchUsers } = require('../controllers/userController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const upload = require('../utils/upload');
 
@@ -11,6 +11,7 @@ router.route('/')
 
 router.route('/roles').get(protect, admin, getRoles);
 router.route('/statuses').get(protect, admin, getStatuses);
+router.route('/search').get(protect, searchUsers);
 
 router.route('/stats')
   .get(protect, getStats);

@@ -190,6 +190,34 @@ const getStatuses = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query || query.length < 2) return res.json([]);
+
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          { status: { name: 'ACTIVE' } },
+          {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } }
+            ]
+          }
+        ],
+        NOT: { id: req.user.userId } // Exclude self
+      },
+      take: 4, // Limit to 4 as requested
+      select: { id: true, name: true, email: true, avatar: true }
+    });
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 // Stats
 const getStats = async (req, res) => {
   try {
@@ -252,4 +280,4 @@ const uploadAvatar = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses };
+module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses, searchUsers };
