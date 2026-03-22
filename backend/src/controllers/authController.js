@@ -75,6 +75,13 @@ const register = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role.name,
+      permissions: {
+        canViewUsers: user.role.canViewUsers,
+        canEditUsers: user.role.canEditUsers,
+        canDeleteUsers: user.role.canDeleteUsers,
+        canViewLogs: user.role.canViewLogs,
+        canManageSettings: user.role.canManageSettings
+      },
       status: user.status.name,
       avatar: user.avatar,
       token,
@@ -139,6 +146,13 @@ const login = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role.name,
+      permissions: {
+        canViewUsers: user.role.canViewUsers,
+        canEditUsers: user.role.canEditUsers,
+        canDeleteUsers: user.role.canDeleteUsers,
+        canViewLogs: user.role.canViewLogs,
+        canManageSettings: user.role.canManageSettings
+      },
       status: user.status.name,
       avatar: user.avatar,
       token,

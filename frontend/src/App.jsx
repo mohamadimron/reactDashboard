@@ -11,6 +11,7 @@ import UserDetail from './pages/UserDetail';
 import AuthLogs from './pages/AuthLogs';
 import Messages from './pages/Messages';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import SessionExpiredModal from './components/SessionExpiredModal';
 
 function App() {
@@ -31,10 +32,11 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="messages" element={<Messages />} />
+              
               <Route 
                 path="users" 
                 element={
-                  <ProtectedRoute requireAdmin={true}>
+                  <ProtectedRoute permissionKey="canViewUsers">
                     <Users />
                   </ProtectedRoute>
                 } 
@@ -42,7 +44,7 @@ function App() {
               <Route 
                 path="users/:id" 
                 element={
-                  <ProtectedRoute requireAdmin={true}>
+                  <ProtectedRoute permissionKey="canViewUsers">
                     <UserDetail />
                   </ProtectedRoute>
                 } 
@@ -50,8 +52,16 @@ function App() {
               <Route 
                 path="logs" 
                 element={
-                  <ProtectedRoute requireAdmin={true}>
+                  <ProtectedRoute permissionKey="canViewLogs">
                     <AuthLogs />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="settings" 
+                element={
+                  <ProtectedRoute permissionKey="canManageSettings">
+                    <Settings />
                   </ProtectedRoute>
                 } 
               />

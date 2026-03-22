@@ -1,16 +1,16 @@
 const express = require('express');
 const { getUsers, getUserById, createUser, updateUser, deleteUser, getStats, updateProfile, updatePassword, uploadAvatar, getRoles, getStatuses, searchUsers } = require('../controllers/userController');
-const { protect, admin } = require('../middlewares/authMiddleware');
+const { protect, admin, checkPermission } = require('../middlewares/authMiddleware');
 const upload = require('../utils/upload');
 
 const router = express.Router();
 
 router.route('/')
-  .get(protect, getUsers)
-  .post(protect, admin, createUser);
+  .get(protect, checkPermission('canViewUsers'), getUsers)
+  .post(protect, checkPermission('canEditUsers'), createUser);
 
-router.route('/roles').get(protect, admin, getRoles);
-router.route('/statuses').get(protect, admin, getStatuses);
+router.route('/roles').get(protect, checkPermission('canViewUsers'), getRoles);
+router.route('/statuses').get(protect, checkPermission('canViewUsers'), getStatuses);
 router.route('/search').get(protect, searchUsers);
 
 router.route('/stats')
@@ -33,8 +33,8 @@ router.route('/profile/avatar')
   }, uploadAvatar);
 
 router.route('/:id')
-  .get(protect, getUserById)
-  .put(protect, admin, updateUser)
-  .delete(protect, admin, deleteUser);
+  .get(protect, checkPermission('canViewUsers'), getUserById)
+  .put(protect, checkPermission('canEditUsers'), updateUser)
+  .delete(protect, checkPermission('canDeleteUsers'), deleteUser);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { 
   ShieldAlert, ShieldCheck, LogOut, Info, Search, 
   Filter, Calendar, ChevronLeft, ChevronRight, Monitor, 
@@ -7,6 +8,9 @@ import {
 } from 'lucide-react';
 
 const AuthLogs = () => {
+  const { user: authUser } = useAuth();
+  const perms = authUser?.permissions || {};
+
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -280,13 +284,15 @@ const AuthLogs = () => {
                         >
                           <Eye size={18} />
                         </button>
-                        <button 
-                          onClick={() => openDeleteModal(log)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100"
-                          title="Delete Log"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {perms.canViewLogs && (
+                          <button 
+                            onClick={() => openDeleteModal(log)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100"
+                            title="Delete Log"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api, { API_URL } from '../services/api';
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight, Eye, X, Loader2, Filter } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,6 +16,9 @@ const userSchema = z.object({
 });
 
 const Users = () => {
+  const { user: authUser } = useAuth();
+  const perms = authUser?.permissions || {};
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -69,14 +73,18 @@ const Users = () => {
   const fetchOptions = async () => {
     setIsOptionsLoading(true);
     try {
+      // Parallel fetch with individual error catching to be robust
       const [rolesRes, statusesRes] = await Promise.all([
-        api.get('/users/roles'),
-        api.get('/users/statuses')
+        api.get('/users/roles').catch(e => ({ data: [] })),
+        api.get('/users/statuses').catch(e => ({ data: [] }))
       ]);
+      
       setRoles(Array.isArray(rolesRes.data) ? rolesRes.data : []);
       setStatuses(Array.isArray(statusesRes.data) ? statusesRes.data : []);
     } catch (error) {
       console.error('Failed to fetch options', error);
+      setRoles([]);
+      setStatuses([]);
     } finally {
       setIsOptionsLoading(false);
     }
@@ -204,14 +212,16 @@ const Users = () => {
           <h3 className="text-2xl font-black text-gray-900 tracking-tight">System Directory</h3>
           <p className="text-sm text-gray-500 font-medium">Manage user accounts, roles, and access levels</p>
         </div>
-        <button
-          onClick={() => openModal()}
-          disabled={isOptionsLoading}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 font-bold text-sm disabled:opacity-50"
-        >
-          {isOptionsLoading ? <Loader2 className="animate-spin" size={18} /> : <Plus size={20} />}
-          <span>{isOptionsLoading ? 'Loading Options...' : 'Register Member'}</span>
-        </button>
+        {perms.canEditUsers && (
+          <button
+            onClick={() => openModal()}
+            disabled={isOptionsLoading}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 font-bold text-sm disabled:opacity-50"
+          >
+            {isOptionsLoading ? <Loader2 className="animate-spin" size={18} /> : <Plus size={20} />}
+            <span>{isOptionsLoading ? 'Loading Options...' : 'Register Member'}</span>
+          </button>
+        )}
       </div>
 
       {/* Advanced Filter Bar */}
@@ -351,27 +361,33 @@ const Users = () => {
 
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end items-center space-x-3">
-                        <Link 
-                          to={`/dashboard/users/${user.id}`}
-                          className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
-                          title="View Profile"
-                        >
-                          <Eye size={18} />
-                        </Link>
-                        <button 
-                          onClick={() => openModal(user)} 
-                          className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
-                          title="Modify Account"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button 
-                          onClick={() => openDeleteModal(user)} 
-                          className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100"
-                          title="Terminate Account"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {perms.canViewUsers && (
+                          <Link 
+                            to={`/dashboard/users/${user.id}`}
+                            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
+                            title="View Profile"
+                          >
+                            <Eye size={18} />
+                          </Link>
+                        )}
+                        {perms.canEditUsers && (
+                          <button 
+                            onClick={() => openModal(user)} 
+                            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
+                            title="Modify Account"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                        )}
+                        {perms.canDeleteUsers && (
+                          <button 
+                            onClick={() => openDeleteModal(user)} 
+                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100"
+                            title="Terminate Account"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

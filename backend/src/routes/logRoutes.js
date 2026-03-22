@@ -1,10 +1,10 @@
 const express = require('express');
 const { getAuthLogs, deleteAuthLog } = require('../controllers/logController');
-const { protect, admin } = require('../middlewares/authMiddleware');
+const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.get('/', protect, admin, getAuthLogs);
-router.delete('/:id', protect, admin, deleteAuthLog);
+router.get('/', protect, checkPermission('canViewLogs'), getAuthLogs);
+router.delete('/:id', protect, checkPermission('canViewLogs'), deleteAuthLog);
 
 module.exports = router;

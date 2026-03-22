@@ -10,9 +10,14 @@ datasource db {
 }
 
 model Role {
-  id    String @id @default(uuid())
-  name  String @unique // ADMIN, USER, OPERATOR
-  users User[]
+  id                String  @id @default(uuid())
+  name              String  @unique // ADMIN, USER, OPERATOR
+  canViewUsers      Boolean @default(false)
+  canEditUsers      Boolean @default(false)
+  canDeleteUsers    Boolean @default(false)
+  canViewLogs       Boolean @default(false)
+  canManageSettings Boolean @default(false)
+  users             User[]
 }
 
 model Status {

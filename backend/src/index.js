@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const logRoutes = require('./routes/logRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const roleRoutes = require('./routes/roleRoutes');
 
 const app = express();
 
@@ -79,6 +80,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/roles', roleRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'API Online', secure: true });
