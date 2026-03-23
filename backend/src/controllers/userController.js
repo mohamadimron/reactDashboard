@@ -282,9 +282,9 @@ const uploadAvatar = async (req, res) => {
     console.log(`[Image] Processing ${req.file.size} bytes for user ${userId}`);
 
     // Compression & High-Quality Resizing
-    // We use a slightly lower quality (75) to ensure it stays well under 100KB 
-    // while maintaining excellent visual clarity
+    // .rotate() ensures EXIF orientation is respected (prevents sideways images)
     await sharp(originalPath)
+      .rotate()
       .resize(400, 400, { 
         fit: 'cover', 
         position: 'center' 
