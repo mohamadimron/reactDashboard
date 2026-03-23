@@ -29,11 +29,12 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       
       // Dispatch custom event for real-time UI notification
-      window.dispatchEvent(new CustomEvent('session-replaced', { 
-        detail: { message: error.response.data.message } 
+      window.dispatchEvent(new CustomEvent('session-expired', { 
+        detail: { 
+          title: 'Multiple Login Detected',
+          message: error.response.data.message || 'You have been logged in from another device.'
+        } 
       }));
-      
-      // Redirect will be handled by context/app logic or the popup
     }
     return Promise.reject(error);
   }

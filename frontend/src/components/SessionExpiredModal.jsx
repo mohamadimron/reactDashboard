@@ -4,18 +4,21 @@ import { AlertTriangle, LogIn } from 'lucide-react';
 const SessionExpiredModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [title, setTitle] = useState('');
 
   useEffect(() => {
-    const handleSessionReplaced = (e) => {
+    const handleExpired = (e) => {
       setMessage(e.detail.message);
+      setTitle(e.detail.title || 'Session Expired');
       setIsOpen(true);
     };
 
-    window.addEventListener('session-replaced', handleSessionReplaced);
-    return () => window.removeEventListener('session-replaced', handleSessionReplaced);
+    window.addEventListener('session-expired', handleExpired);
+    return () => window.removeEventListener('session-expired', handleExpired);
   }, []);
 
   const handleRedirect = () => {
+    setIsOpen(false);
     window.location.href = '/login';
   };
 
@@ -33,9 +36,9 @@ const SessionExpiredModal = () => {
             <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-6 animate-pulse">
               <AlertTriangle size={40} />
             </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Session Invalidated</h3>
+            <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">{title}</h3>
             <p className="text-gray-500 font-medium leading-relaxed">
-              {message || 'You have been logged in from another device or your session has expired.'}
+              {message}
             </p>
           </div>
         </div>

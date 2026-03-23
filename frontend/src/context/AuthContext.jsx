@@ -22,10 +22,18 @@ export const AuthProvider = ({ children }) => {
 
   const handleAutoLogout = () => {
     console.log('Inactivity detected. Logging out...');
-    logout();
-    // Dispatch event for UI notification
-    window.dispatchEvent(new CustomEvent('session-replaced', { 
-      detail: { message: 'Your session has expired due to 30 minutes of inactivity.' } 
+    
+    // 1. Clear State and Storage immediately
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+
+    // 2. Dispatch event for UI notification
+    window.dispatchEvent(new CustomEvent('session-expired', { 
+      detail: { 
+        title: 'Session Expired',
+        message: 'Your session has ended due to 30 minutes of inactivity. Please log in again to continue.' 
+      } 
     }));
   };
 
