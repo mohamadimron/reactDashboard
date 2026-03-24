@@ -161,4 +161,27 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage, getConversations, getMessagesWithUser, deleteMessage };
+const deleteConversation = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { otherUserId } = req.params;
+
+    // Security check: Verify the user is part of the conversation
+    // (Actually deleteMany will only affect rows matching userId)
+    await prisma.message.deleteMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: otherUserId },
+          { senderId: otherUserId, receiverId: userId }
+        ]
+      }
+    });
+
+    res.json({ message: 'Conversation cleared successfully' });
+  } catch (error) {
+    console.error('[Message] Delete Conversation Error:', error);
+    res.status(500).json({ message: 'Server Error while clearing conversation' });
+  }
+};
+
+module.exports = { sendMessage, getConversations, getMessagesWithUser, deleteMessage, deleteConversation };

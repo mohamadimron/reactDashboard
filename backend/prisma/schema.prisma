@@ -18,6 +18,8 @@ model Role {
   canDeleteUsers    Boolean @default(false)
   canViewLogs       Boolean @default(false)
   canManageSettings Boolean @default(false)
+  canViewMessages   Boolean @default(false)
+  canDeleteMessages Boolean @default(false)
   users             User[]
 }
 

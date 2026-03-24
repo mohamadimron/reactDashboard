@@ -37,7 +37,9 @@ const protect = async (req, res, next) => {
           canEditUsers: user.role.canEditUsers,
           canDeleteUsers: user.role.canDeleteUsers,
           canViewLogs: user.role.canViewLogs,
-          canManageSettings: user.role.canManageSettings
+          canManageSettings: user.role.canManageSettings,
+          canViewMessages: user.role.canViewMessages,
+          canDeleteMessages: user.role.canDeleteMessages
         }
       };
       next();

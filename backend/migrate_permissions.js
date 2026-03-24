@@ -25,7 +25,9 @@ async function migrate() {
       canEditUsers: true,
       canDeleteUsers: true,
       canViewLogs: true,
-      canManageSettings: true
+      canManageSettings: true,
+      canViewMessages: true,
+      canDeleteMessages: true
     }
   });
 
@@ -38,11 +40,13 @@ async function migrate() {
       canEditUsers: true,
       canDeleteUsers: false,
       canViewLogs: false,
-      canManageSettings: false
+      canManageSettings: false,
+      canViewMessages: true,
+      canDeleteMessages: false
     }
   });
 
-  // 3. USER: Minimal access
+  // 3. USER: Minimal access but can use messages
   await prisma.role.update({
     where: { name: 'USER' },
     data: {
@@ -51,7 +55,9 @@ async function migrate() {
       canEditUsers: false,
       canDeleteUsers: false,
       canViewLogs: false,
-      canManageSettings: false
+      canManageSettings: false,
+      canViewMessages: true,
+      canDeleteMessages: true
     }
   });
 

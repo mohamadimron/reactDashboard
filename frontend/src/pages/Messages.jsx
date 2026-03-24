@@ -9,6 +9,10 @@ import {
 
 const Messages = () => {
   const { user: currentUser } = useAuth();
+  // Robust Permission Check: Admin always has access, otherwise check specific permission
+  const canDelete = currentUser?.role === 'ADMIN' || currentUser?.permissions?.canDeleteMessages;
+  const canView = currentUser?.role === 'ADMIN' || currentUser?.permissions?.canViewMessages;
+  
   const [conversations, setConversations] = useState([]);
   const [activeTab, setActiveTab] = useState(null); // otherUserId
   const [messages, setMessages] = useState([]);
@@ -299,13 +303,15 @@ const Messages = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => setIsConvDeleteModalOpen(true)}
-                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Clear Conversation"
-                >
-                  <Trash2 size={20} />
-                </button>
+                {canDelete && (
+                  <button 
+                    onClick={() => setIsConvDeleteModalOpen(true)}
+                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    title="Clear Conversation"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                )}
                 <MoreVertical className="text-gray-400" size={20} />
               </div>
             </header>
@@ -326,13 +332,15 @@ const Messages = () => {
                         </div>
                         
                         {/* Inline Delete Trigger */}
-                        <button 
-                          onClick={() => { setMsgToDelete(msg); setIsDeleteModalOpen(true); }}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-red-100"
-                          title="Delete"
-                        >
-                          <X size={14} />
-                        </button>
+                        {canDelete && (
+                          <button 
+                            onClick={() => { setMsgToDelete(msg); setIsDeleteModalOpen(true); }}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-red-100"
+                            title="Delete"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
 
                       <div className={`flex items-center space-x-2 px-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>

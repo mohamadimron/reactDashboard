@@ -44,7 +44,7 @@ const DashboardLayout = () => {
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: true },
     { to: '/dashboard/profile', label: 'My Profile', icon: User, permission: true },
-    { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, permission: true },
+    { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, permission: user?.permissions?.canViewMessages },
     { to: '/dashboard/users', label: 'User Management', icon: Users, permission: user?.permissions?.canViewUsers },
     { to: '/dashboard/logs', label: 'Auth Logs', icon: ClipboardList, permission: user?.permissions?.canViewLogs },
     { to: '/dashboard/settings', label: 'System Settings', icon: Settings, permission: user?.permissions?.canManageSettings },

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { 
   Shield, Settings as SettingsIcon, Plus, Trash2, 
   CheckCircle2, XCircle, Save, Loader2, Info, Lock, X, Check
 } from 'lucide-react';
 
 const Settings = () => {
+  const { user: currentUser, updateUserContext } = useAuth();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('roles'); // 'roles' or 'access'
@@ -89,8 +91,27 @@ const Settings = () => {
         canEditUsers: role.canEditUsers,
         canDeleteUsers: role.canDeleteUsers,
         canViewLogs: role.canViewLogs,
-        canManageSettings: role.canManageSettings
+        canManageSettings: role.canManageSettings,
+        canViewMessages: role.canViewMessages,
+        canDeleteMessages: role.canDeleteMessages
       });
+
+      // Update current user context if they modified their own role
+      if (currentUser && currentUser.role === role.name) {
+        updateUserContext({
+          permissions: {
+            canViewUsers: role.canViewUsers,
+            canCreateUsers: role.canCreateUsers,
+            canEditUsers: role.canEditUsers,
+            canDeleteUsers: role.canDeleteUsers,
+            canViewLogs: role.canViewLogs,
+            canManageSettings: role.canManageSettings,
+            canViewMessages: role.canViewMessages,
+            canDeleteMessages: role.canDeleteMessages
+          }
+        });
+      }
+
       showSuccess(`Access Matrix for ${role.name} updated!`);
     } catch (err) {
       alert('Failed to update permissions');
@@ -243,6 +264,17 @@ const Settings = () => {
                     Module: Security Audit
                   </h5>
                   <PermissionToggle label="Access Auth Logs" active={role.canViewLogs} onClick={() => handleTogglePermission(role.id, 'canViewLogs')} />
+                </div>
+
+                <div className="space-y-4 lg:col-span-4 mt-4">
+                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full"></div>
+                    Module: Messaging System
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <PermissionToggle label="Open Private Chat" active={role.canViewMessages} onClick={() => handleTogglePermission(role.id, 'canViewMessages')} />
+                    <PermissionToggle label="Remove Conversations" active={role.canDeleteMessages} onClick={() => handleTogglePermission(role.id, 'canDeleteMessages')} />
+                  </div>
                 </div>
               </div>
             </div>
