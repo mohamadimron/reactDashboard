@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Shield, Settings as SettingsIcon, Plus, Trash2, 
-  CheckCircle2, XCircle, Save, Loader2, Info, Lock, X, Check
+  Settings as SettingsIcon, Trash2,
+  CheckCircle2, XCircle, Save, Loader2, Lock, ShieldCheck
 } from 'lucide-react';
 
 const Settings = () => {
   const { user: currentUser, updateUserContext } = useAuth();
   const [roles, setRoles] = useState([]);
+  const [registrationRoles, setRegistrationRoles] = useState([]);
+  const [defaultRegistrationRole, setDefaultRegistrationRole] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('roles'); // 'roles' or 'access'
   const [newRoleName, setNewRoleName] = useState('');
@@ -21,20 +23,33 @@ const Settings = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchRoles = async () => {
+  const fetchSettingsData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/roles');
-      setRoles(Array.isArray(res.data) ? res.data : []);
+      const [rolesRes, settingsRes] = await Promise.all([
+        api.get('/roles'),
+        api.get('/settings')
+      ]);
+
+      const fetchedRoles = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+      const selectableRegistrationRoles = fetchedRoles.filter(role => role.name !== 'ADMIN');
+
+      setRoles(fetchedRoles);
+      setRegistrationRoles(selectableRegistrationRoles);
+      setDefaultRegistrationRole(
+        settingsRes.data?.defaultRegistrationRole ||
+        selectableRegistrationRoles[0]?.name ||
+        ''
+      );
     } catch (err) {
-      console.error('Failed to fetch roles', err);
+      console.error('Failed to fetch settings data', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRoles();
+    fetchSettingsData();
   }, []);
 
   const handleAddRole = async (e) => {
@@ -43,7 +58,7 @@ const Settings = () => {
     try {
       await api.post('/roles', { name: newRoleName });
       setNewRoleName('');
-      fetchRoles();
+      await fetchSettingsData();
       showSuccess(`Role "${newRoleName.toUpperCase()}" registered successfully!`);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to create role');
@@ -65,11 +80,31 @@ const Settings = () => {
     if (!roleToDelete) return;
     try {
       await api.delete(`/roles/${roleToDelete.id}`);
-      fetchRoles();
+      await fetchSettingsData();
       closeDeleteModal();
       showSuccess(`Role has been removed.`);
     } catch (err) {
       alert(err.response?.data?.message || 'Delete failed');
+    }
+  };
+
+  const saveDefaultRegistrationRole = async () => {
+    if (!defaultRegistrationRole) {
+      alert('Please select a default role for public registration');
+      return;
+    }
+
+    setIsSaving('default-registration-role');
+    try {
+      await api.put('/settings', {
+        key: 'defaultRegistrationRole',
+        value: defaultRegistrationRole
+      });
+      showSuccess(`Default registration role updated to ${defaultRegistrationRole}.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update registration default role');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -163,6 +198,59 @@ const Settings = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-left-4 duration-500">
           {/* Add Role Form */}
           <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">Registration Default Role</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-1">
+                    Public sign up will assign this role to every new account after the first bootstrap admin.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">
+                    Default Role for Register Page
+                  </label>
+                  <select
+                    value={defaultRegistrationRole}
+                    onChange={(e) => setDefaultRegistrationRole(e.target.value)}
+                    disabled={loading || registrationRoles.length === 0}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-60"
+                  >
+                    {registrationRoles.length === 0 ? (
+                      <option value="">No eligible roles available</option>
+                    ) : (
+                      registrationRoles.map(role => (
+                        <option key={role.id} value={role.name}>
+                          {role.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-5 py-4">
+                  <p className="text-xs font-bold text-gray-500 leading-relaxed">
+                    `ADMIN` is intentionally excluded here to prevent public registration from creating privileged accounts.
+                  </p>
+                </div>
+
+                <button
+                  onClick={saveDefaultRegistrationRole}
+                  disabled={isSaving === 'default-registration-role' || registrationRoles.length === 0}
+                  className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSaving === 'default-registration-role' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                  <span>Save Registration Rule</span>
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
               <h3 className="text-xl font-black text-gray-900 mb-6">Create New Role</h3>
               <form onSubmit={handleAddRole} className="space-y-4">

@@ -9,6 +9,12 @@ const api = axios.create({
   baseURL: API_URL,
 });
 
+const emitSessionExpired = ({ title, message }) => {
+  window.dispatchEvent(new CustomEvent('session-expired', {
+    detail: { title, message }
+  }));
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,18 +29,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && error.response?.data?.code === 'SESSION_REPLACED') {
-      // Clear storage
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+
+    if (status === 401 && (code === 'SESSION_REPLACED' || code === 'SESSION_IDLE_TIMEOUT')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      // Dispatch custom event for real-time UI notification
-      window.dispatchEvent(new CustomEvent('session-expired', { 
-        detail: { 
-          title: 'Multiple Login Detected',
-          message: error.response.data.message || 'You have been logged in from another device.'
-        } 
-      }));
+
+      emitSessionExpired({
+        title: error.response?.data?.title || (code === 'SESSION_REPLACED' ? 'Multiple Login Detected' : 'Session Expired'),
+        message: error.response?.data?.message || 'Your session has ended. Please log in again to continue.'
+      });
     }
     return Promise.reject(error);
   }

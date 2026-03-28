@@ -38,6 +38,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const handleSessionExpired = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    };
+
+    window.addEventListener('session-expired', handleSessionExpired);
+    return () => window.removeEventListener('session-expired', handleSessionExpired);
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
@@ -86,7 +97,15 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      if (localStorage.getItem('token')) {
+        await api.post('/auth/logout');
+      }
+    } catch (error) {
+      console.error('Logout request failed:', error);
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);

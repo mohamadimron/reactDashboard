@@ -1,4 +1,5 @@
 const prisma = require('../utils/db');
+const { SYSTEM_SETTING_KEYS, getSystemSetting } = require('../utils/systemSettings');
 
 // Get all roles with their permissions
 const getAllRoles = async (req, res) => {
@@ -34,6 +35,18 @@ const createRole = async (req, res) => {
 const deleteRole = async (req, res) => {
   try {
     const { id } = req.params;
+    const role = await prisma.role.findUnique({ where: { id } });
+
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    const defaultRegistrationRole = await getSystemSetting(SYSTEM_SETTING_KEYS.DEFAULT_REGISTRATION_ROLE);
+    if (defaultRegistrationRole && defaultRegistrationRole === role.name) {
+      return res.status(400).json({
+        message: 'Cannot delete role that is configured as the default registration role'
+      });
+    }
     
     // Check if role is in use
     const userCount = await prisma.user.count({ where: { roleId: id } });

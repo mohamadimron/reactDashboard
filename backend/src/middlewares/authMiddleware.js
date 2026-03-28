@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/db');
 
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+
 const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -18,6 +20,26 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ 
           message: 'Session invalidated. You have logged in from another device.',
           code: 'SESSION_REPLACED'
+        });
+      }
+
+      const now = Date.now();
+      const lastActivityTime = user.lastActivity ? new Date(user.lastActivity).getTime() : null;
+      const isIdleExpired = lastActivityTime && now - lastActivityTime > INACTIVITY_LIMIT_MS;
+
+      if (isIdleExpired) {
+        await prisma.user.update({
+          where: { id: decoded.userId },
+          data: {
+            lastActivity: null,
+            lastSessionId: null
+          }
+        });
+
+        return res.status(401).json({
+          title: 'Session Expired',
+          message: 'Your session has ended due to more than 1 hour of inactivity. Please log in again to continue.',
+          code: 'SESSION_IDLE_TIMEOUT'
         });
       }
 

@@ -1,6 +1,7 @@
 const prisma = require('../utils/db');
 const { hashPassword, comparePassword, generateToken } = require('../utils/auth');
 const { logAuthEvent } = require('../utils/authLogger');
+const { resolveRegistrationRole } = require('../utils/systemSettings');
 const z = require('zod');
 
 // Validation schema
@@ -32,12 +33,18 @@ const register = async (req, res) => {
 
     // Dynamic Role & Status lookup
     const count = await prisma.user.count();
-    const roleName = count === 0 ? 'ADMIN' : 'USER';
-    
     const [role, status] = await Promise.all([
-      prisma.role.findUnique({ where: { name: roleName } }),
+      resolveRegistrationRole({ userCount: count }),
       prisma.status.findUnique({ where: { name: 'ACTIVE' } })
     ]);
+
+    if (!role) {
+      return res.status(500).json({ message: 'No valid default role is configured for registration' });
+    }
+
+    if (!status) {
+      return res.status(500).json({ message: 'ACTIVE status is not configured in the system' });
+    }
 
     const hashedPassword = await hashPassword(password);
     const sessionId = require('crypto').randomUUID();
@@ -56,6 +63,8 @@ const register = async (req, res) => {
         roleId: role.id,
         statusId: status.id,
         lastSessionId: sessionId,
+        lastLogin: new Date(),
+        lastActivity: new Date(),
         deviceInfo: deviceInfo 
       },
       include: { role: true, status: true }
@@ -139,7 +148,12 @@ const login = async (req, res) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date(), lastSessionId: sessionId, deviceInfo: deviceInfo }
+      data: {
+        lastLogin: new Date(),
+        lastActivity: new Date(),
+        lastSessionId: sessionId,
+        deviceInfo: deviceInfo
+      }
     });
 
     logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_SUCCESS', req });
@@ -180,7 +194,10 @@ const logout = async (req, res) => {
       // Force offline status on logout
       await prisma.user.update({
         where: { id: userId },
-        data: { lastActivity: null }
+        data: {
+          lastActivity: null,
+          lastSessionId: null
+        }
       });
     }
     res.json({ message: 'Logged out successfully' });
