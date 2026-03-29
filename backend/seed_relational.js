@@ -1,14 +1,15 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const bcrypt = require('bcryptjs');
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('Missing required environment variable: DATABASE_URL');
+}
+
 const pool = new Pool({
-  user: 'user-react-dashboard',
-  host: '192.168.0.105',
-  database: 'react-dashboard',
-  password: 'NoComent@x9x9',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
 });
 
 const adapter = new PrismaPg(pool);

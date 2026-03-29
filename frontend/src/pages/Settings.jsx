@@ -212,114 +212,113 @@ const Settings = () => {
       </div>
 
       {activeTab === 'roles' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-left-4 duration-500">
-          {/* Add Role Form */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] gap-6 lg:gap-8 animate-in slide-in-from-left-4 duration-500">
+          <div className="space-y-6">
+            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
                   <ShieldCheck size={24} />
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-gray-900">Registration Default Role</h3>
-                  <p className="text-sm text-gray-500 font-medium mt-1">
-                    Public sign up will assign this role to every new account after the first bootstrap admin.
+                <div className="min-w-0">
+                  <h3 className="text-xl font-black text-gray-900">Public Registration Access</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-1 leading-relaxed">
+                    Control whether the public register page appears in the UI and whether direct sign-up requests are allowed.
                   </p>
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 gap-3">
+                <label
+                  className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
+                    registerPageEnabled
+                      ? 'border-emerald-300 bg-emerald-50 shadow-sm shadow-emerald-100'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="register-page-access"
+                    className="sr-only"
+                    checked={registerPageEnabled}
+                    onChange={() => setRegisterPageEnabled(true)}
+                  />
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 shrink-0 ${
+                        registerPageEnabled ? 'border-emerald-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          registerPageEnabled ? 'bg-emerald-500' : 'bg-transparent'
+                        }`}
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-gray-900">Enabled</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1 leading-relaxed">
+                        Show register entry points and allow public sign up.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
+                    !registerPageEnabled
+                      ? 'border-rose-300 bg-rose-50 shadow-sm shadow-rose-100'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="register-page-access"
+                    className="sr-only"
+                    checked={!registerPageEnabled}
+                    onChange={() => setRegisterPageEnabled(false)}
+                  />
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 shrink-0 ${
+                        !registerPageEnabled ? 'border-rose-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          !registerPageEnabled ? 'bg-rose-500' : 'bg-transparent'
+                        }`}
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-gray-900">Disabled</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1 leading-relaxed">
+                        Hide `/register` from the interface and reject direct registration attempts.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={saveRegisterPageAccess}
+                disabled={isSaving === 'register-page-access'}
+                className="mt-5 w-full bg-gray-900 text-white rounded-2xl py-3.5 font-black text-sm shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSaving === 'register-page-access' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                <span>Save Register Access</span>
+              </button>
+            </div>
+
+            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="mb-5">
+                <h3 className="text-xl font-black text-gray-900">Default Registration Role</h3>
+                <p className="text-sm text-gray-500 font-medium mt-1 leading-relaxed">
+                  Every new public account will receive the selected role automatically.
+                </p>
+              </div>
+
               <div className="space-y-4">
-                <div className="rounded-[2rem] border border-gray-100 bg-gray-50/70 p-5">
-                  <div>
-                    <p className="text-sm font-black text-gray-900">Register Page Access</p>
-                    <p className="text-xs font-medium text-gray-500 mt-1 leading-relaxed">
-                      When disabled, the `/register` page is hidden from UI and direct access is redirected away.
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label
-                      className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
-                        registerPageEnabled
-                          ? 'border-emerald-300 bg-emerald-50 shadow-sm shadow-emerald-100'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="register-page-access"
-                        className="sr-only"
-                        checked={registerPageEnabled}
-                        onChange={() => setRegisterPageEnabled(true)}
-                      />
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                            registerPageEnabled ? 'border-emerald-500' : 'border-gray-300'
-                          }`}
-                        >
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              registerPageEnabled ? 'bg-emerald-500' : 'bg-transparent'
-                            }`}
-                          />
-                        </span>
-                        <div>
-                          <p className="text-sm font-black text-gray-900">Enabled</p>
-                          <p className="text-xs font-medium text-gray-500 mt-1">
-                            Show register entry points and allow public sign up.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
-                        !registerPageEnabled
-                          ? 'border-rose-300 bg-rose-50 shadow-sm shadow-rose-100'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="register-page-access"
-                        className="sr-only"
-                        checked={!registerPageEnabled}
-                        onChange={() => setRegisterPageEnabled(false)}
-                      />
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                            !registerPageEnabled ? 'border-rose-500' : 'border-gray-300'
-                          }`}
-                        >
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              !registerPageEnabled ? 'bg-rose-500' : 'bg-transparent'
-                            }`}
-                          />
-                        </span>
-                        <div>
-                          <p className="text-sm font-black text-gray-900">Disabled</p>
-                          <p className="text-xs font-medium text-gray-500 mt-1">
-                            Hide register access and block direct registration requests.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={saveRegisterPageAccess}
-                    disabled={isSaving === 'register-page-access'}
-                    className="mt-4 w-full bg-gray-900 text-white rounded-2xl py-3.5 font-black text-sm shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSaving === 'register-page-access' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    <span>Save Register Access</span>
-                  </button>
-                </div>
-
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">
                     Default Role for Register Page
@@ -328,7 +327,7 @@ const Settings = () => {
                     value={defaultRegistrationRole}
                     onChange={(e) => setDefaultRegistrationRole(e.target.value)}
                     disabled={loading || registrationRoles.length === 0}
-                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-60"
+                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 sm:px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-60"
                   >
                     {registrationRoles.length === 0 ? (
                       <option value="">No eligible roles available</option>
@@ -342,7 +341,7 @@ const Settings = () => {
                   </select>
                 </div>
 
-                <div className="rounded-2xl bg-gray-50 px-5 py-4">
+                <div className="rounded-2xl bg-gray-50 px-4 py-4 sm:px-5">
                   <p className="text-xs font-bold text-gray-500 leading-relaxed">
                     `ADMIN` is intentionally excluded here to prevent public registration from creating privileged accounts.
                   </p>
@@ -359,15 +358,18 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-              <h3 className="text-xl font-black text-gray-900 mb-6">Create New Role</h3>
+            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <h3 className="text-xl font-black text-gray-900 mb-2">Create New Role</h3>
+              <p className="text-sm text-gray-500 font-medium mb-6">
+                Add a new role identifier first, then define its permissions in the access matrix tab.
+              </p>
               <form onSubmit={handleAddRole} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">Role Identifier</label>
                   <input 
                     value={newRoleName}
                     onChange={(e) => setNewRoleName(e.target.value)}
-                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 sm:px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
                     placeholder="e.g. MODERATOR"
                   />
                 </div>
@@ -381,38 +383,82 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Roles Table */}
-          <div className="lg:col-span-2">
+          <div className="min-w-0">
             <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Role Name</th>
-                    <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {loading ? (
-                    <tr><td colSpan="2" className="px-8 py-12 text-center text-gray-400 font-bold uppercase tracking-widest">Syncing Roles Matrix...</td></tr>
-                  ) : roles.map(role => (
-                    <tr key={role.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-8 py-5 font-black text-gray-900">{role.name}</td>
-                      <td className="px-8 py-5 text-right">
-                        <button 
-                          onClick={() => openDeleteModal(role)}
-                          className={`p-2.5 rounded-xl transition-all ${
-                            role.name === 'ADMIN' 
-                              ? 'text-gray-200 cursor-not-allowed opacity-50' 
-                              : 'text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm border border-transparent'
-                          }`}
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </td>
+              <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/40">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900">Registered Roles</h3>
+                    <p className="text-sm text-gray-500 font-medium mt-1">
+                      Review available roles and remove unused roles safely.
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center rounded-2xl bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-200 shadow-sm w-fit">
+                    {loading ? 'Syncing...' : `${roles.length} Roles`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="block md:hidden divide-y divide-gray-100">
+                {loading ? (
+                  <div className="px-6 py-12 text-center text-gray-400 font-bold uppercase tracking-widest">
+                    Syncing Roles Matrix...
+                  </div>
+                ) : roles.map(role => (
+                  <div key={role.id} className="px-6 py-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-base font-black text-gray-900 break-words">{role.name}</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest mt-2 text-gray-400">
+                          {role.name === 'ADMIN' ? 'Protected core role' : 'Custom role'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => openDeleteModal(role)}
+                        className={`shrink-0 p-2.5 rounded-xl transition-all ${
+                          role.name === 'ADMIN'
+                            ? 'text-gray-200 cursor-not-allowed opacity-50'
+                            : 'text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm border border-transparent'
+                        }`}
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full text-left">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                      <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Role Name</th>
+                      <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      <tr><td colSpan="2" className="px-8 py-12 text-center text-gray-400 font-bold uppercase tracking-widest">Syncing Roles Matrix...</td></tr>
+                    ) : roles.map(role => (
+                      <tr key={role.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-8 py-5 font-black text-gray-900 break-words">{role.name}</td>
+                        <td className="px-8 py-5 text-right">
+                          <button 
+                            onClick={() => openDeleteModal(role)}
+                            className={`p-2.5 rounded-xl transition-all ${
+                              role.name === 'ADMIN' 
+                                ? 'text-gray-200 cursor-not-allowed opacity-50' 
+                                : 'text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm border border-transparent'
+                            }`}
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

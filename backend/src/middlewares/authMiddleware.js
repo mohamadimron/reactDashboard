@@ -1,14 +1,16 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/db');
+const { getRequiredEnv } = require('../utils/env');
 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+const JWT_SECRET = getRequiredEnv('JWT_SECRET');
 
 const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      const decoded = jwt.verify(token, JWT_SECRET);
       
       // Enforce single session: Check if sessionId matches latest in DB
       const user = await prisma.user.findUnique({ 
@@ -18,6 +20,7 @@ const protect = async (req, res, next) => {
 
       if (!user || user.lastSessionId !== decoded.sessionId) {
         return res.status(401).json({ 
+          title: 'Multiple Login Detected',
           message: 'Session invalidated. You have logged in from another device.',
           code: 'SESSION_REPLACED'
         });

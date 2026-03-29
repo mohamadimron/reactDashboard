@@ -1,11 +1,12 @@
+require('dotenv').config();
 const { Client } = require('pg');
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('Missing required environment variable: DATABASE_URL');
+}
+
 const config = {
-  user: 'user-react-dashboard',
-  host: '192.168.0.105',
-  database: 'react-dashboard',
-  password: 'NoComent@x9x9',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
 };
 
 async function test() {

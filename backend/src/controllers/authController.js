@@ -2,6 +2,7 @@ const prisma = require('../utils/db');
 const { hashPassword, comparePassword, generateToken } = require('../utils/auth');
 const { logAuthEvent } = require('../utils/authLogger');
 const { resolveRegistrationRole, isRegisterPageEnabled } = require('../utils/systemSettings');
+const { sanitizeUser } = require('../utils/userSerializer');
 const z = require('zod');
 
 // Validation schema
@@ -31,16 +32,15 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const count = await prisma.user.count();
     const registerEnabled = await isRegisterPageEnabled();
 
-    if (count > 0 && !registerEnabled) {
+    if (!registerEnabled) {
       return res.status(403).json({ message: 'Public registration is currently disabled' });
     }
 
     // Dynamic Role & Status lookup
     const [role, status] = await Promise.all([
-      resolveRegistrationRole({ userCount: count }),
+      resolveRegistrationRole(),
       prisma.status.findUnique({ where: { name: 'ACTIVE' } })
     ]);
 
@@ -86,22 +86,7 @@ const register = async (req, res) => {
     });
 
     res.status(201).json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role.name,
-      permissions: {
-        canViewUsers: user.role.canViewUsers,
-        canCreateUsers: user.role.canCreateUsers,
-        canEditUsers: user.role.canEditUsers,
-        canDeleteUsers: user.role.canDeleteUsers,
-        canViewLogs: user.role.canViewLogs,
-        canManageSettings: user.role.canManageSettings,
-        canViewMessages: user.role.canViewMessages,
-        canDeleteMessages: user.role.canDeleteMessages
-      },
-      status: user.status.name,
-      avatar: user.avatar,
+      ...sanitizeUser(user),
       token,
     });
   } catch (error) {
@@ -165,22 +150,7 @@ const login = async (req, res) => {
     logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_SUCCESS', req });
 
     res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role.name,
-      permissions: {
-        canViewUsers: user.role.canViewUsers,
-        canCreateUsers: user.role.canCreateUsers,
-        canEditUsers: user.role.canEditUsers,
-        canDeleteUsers: user.role.canDeleteUsers,
-        canViewLogs: user.role.canViewLogs,
-        canManageSettings: user.role.canManageSettings,
-        canViewMessages: user.role.canViewMessages,
-        canDeleteMessages: user.role.canDeleteMessages
-      },
-      status: user.status.name,
-      avatar: user.avatar,
+      ...sanitizeUser(user),
       token,
     });
   } catch (error) {

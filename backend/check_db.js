@@ -1,15 +1,16 @@
+require('dotenv').config();
 const { Client } = require('pg');
 
-const config = {
-  user: 'user-react-dashboard',
-  host: '192.168.0.105',
-  database: 'postgres',
-  password: 'NoComent@x9x9',
-  port: 5432,
-};
+if (!process.env.DATABASE_URL) {
+  throw new Error('Missing required environment variable: DATABASE_URL');
+}
+
+const defaultUrl = new URL(process.env.DATABASE_URL);
+const postgresUrl = new URL(process.env.DATABASE_URL);
+postgresUrl.pathname = '/postgres';
 
 async function check() {
-  const client = new Client(config);
+  const client = new Client({ connectionString: postgresUrl.toString() });
   try {
     await client.connect();
     console.log('Connected to postgres database');
@@ -18,7 +19,9 @@ async function check() {
     console.log('Available databases:', dbs.rows.map(r => r.datname));
     
     for (const dbName of dbs.rows.map(r => r.datname)) {
-      const dbClient = new Client({ ...config, database: dbName });
+      const dbUrl = new URL(defaultUrl.toString());
+      dbUrl.pathname = `/${dbName}`;
+      const dbClient = new Client({ connectionString: dbUrl.toString() });
       try {
         await dbClient.connect();
         console.log(`Connected to ${dbName}`);

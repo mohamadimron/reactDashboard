@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext, useRef } from 'react';
 import api from '../services/api';
+import { emitSessionExpired, resetSessionExpiryNotice, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
 
 const AuthContext = createContext();
 
@@ -8,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const timerRef = useRef(null);
 
-  // Auto Logout Logic: 30 Minutes Inactivity
   const INACTIVITY_LIMIT = 30 * 60 * 1000; 
 
   const resetInactivityTimer = () => {
@@ -21,20 +21,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handleAutoLogout = () => {
-    console.log('Inactivity detected. Logging out...');
-    
-    // 1. Clear State and Storage immediately
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
 
-    // 2. Dispatch event for UI notification
-    window.dispatchEvent(new CustomEvent('session-expired', { 
-      detail: { 
-        title: 'Session Expired',
-        message: 'Your session has ended due to 30 minutes of inactivity. Please log in again to continue.' 
-      } 
-    }));
+    emitSessionExpired({
+      reason: SESSION_EXPIRY_REASONS.FRONTEND_INACTIVITY_TIMEOUT
+    });
   };
 
   useEffect(() => {
@@ -84,6 +77,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, ...userData } = response.data;
+    resetSessionExpiryNotice();
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
@@ -92,6 +86,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     const response = await api.post('/auth/register', { name, email, password });
     const { token, ...userData } = response.data;
+    resetSessionExpiryNotice();
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
@@ -108,6 +103,7 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    resetSessionExpiryNotice();
     setUser(null);
   };
 

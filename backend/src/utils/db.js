@@ -1,14 +1,10 @@
+const { getRequiredEnv } = require('./env');
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 
-// Use individual parameters to ensure correct type handling
 const pool = new Pool({
-  user: 'user-react-dashboard',
-  host: '192.168.0.105',
-  database: 'react-dashboard',
-  password: 'NoComent@x9x9',
-  port: 5432,
+  connectionString: getRequiredEnv('DATABASE_URL'),
 });
 
 const adapter = new PrismaPg(pool);

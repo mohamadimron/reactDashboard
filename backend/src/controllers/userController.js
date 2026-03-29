@@ -1,5 +1,6 @@
 const prisma = require('../utils/db');
 const { hashPassword } = require('../utils/auth');
+const { sanitizeUser, sanitizeUsers } = require('../utils/userSerializer');
 
 // Get all users (with pagination and search)
 const getUsers = async (req, res) => {
@@ -53,11 +54,7 @@ const getUsers = async (req, res) => {
     ]);
 
     // Format for frontend
-    const formattedUsers = users.map(u => ({
-      ...u,
-      role: u.role.name,
-      status: u.status.name
-    }));
+    const formattedUsers = sanitizeUsers(users);
 
     res.json({
       users: formattedUsers,
@@ -81,13 +78,7 @@ const getUserById = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'User not found' });
     
-    const formatted = {
-      ...user,
-      role: user.role.name,
-      status: user.status.name
-    };
-    
-    res.json(formatted);
+    res.json(sanitizeUser(user));
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
@@ -115,11 +106,7 @@ const createUser = async (req, res) => {
       include: { role: true, status: true }
     });
 
-    res.status(201).json({
-      ...user,
-      role: user.role.name,
-      status: user.status.name
-    });
+    res.status(201).json(sanitizeUser(user));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
@@ -143,11 +130,7 @@ const updateUser = async (req, res) => {
       include: { role: true, status: true }
     });
 
-    res.json({
-      ...user,
-      role: user.role.name,
-      status: user.status.name
-    });
+    res.json(sanitizeUser(user));
   } catch (error) {
     if (error.code === 'P2025') {
       return res.status(404).json({ message: 'User not found' });
@@ -245,7 +228,7 @@ const updateProfile = async (req, res) => {
       data: { name, email },
       include: { role: true, status: true }
     });
-    res.json({ ...user, role: user.role.name, status: user.status.name });
+    res.json(sanitizeUser(user));
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
@@ -327,7 +310,7 @@ const uploadAvatar = async (req, res) => {
     });
 
     console.log('[Image] Profile updated with optimized avatar');
-    res.json({ ...user, role: user.role.name, status: user.status.name });
+    res.json(sanitizeUser(user));
   } catch (error) {
     console.error('[Image] Processing Error:', error);
     res.status(500).json({ message: 'Error processing image. Ensure it is a valid format.' });

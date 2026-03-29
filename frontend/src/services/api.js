@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { emitSessionExpired, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
 
 // Dynamically determine the API URL
 export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -8,12 +9,6 @@ export const API_URL = window.location.hostname === 'localhost' || window.locati
 const api = axios.create({
   baseURL: API_URL,
 });
-
-const emitSessionExpired = ({ title, message }) => {
-  window.dispatchEvent(new CustomEvent('session-expired', {
-    detail: { title, message }
-  }));
-};
 
 api.interceptors.request.use(
   (config) => {
@@ -31,16 +26,28 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const code = error.response?.data?.code;
+    const hasStoredSession = Boolean(localStorage.getItem('token'));
 
-    if (status === 401 && (code === 'SESSION_REPLACED' || code === 'SESSION_IDLE_TIMEOUT')) {
+    if (status === 401 && hasStoredSession && (code === 'SESSION_REPLACED' || code === 'SESSION_IDLE_TIMEOUT')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
       emitSessionExpired({
-        title: error.response?.data?.title || (code === 'SESSION_REPLACED' ? 'Multiple Login Detected' : 'Session Expired'),
-        message: error.response?.data?.message || 'Your session has ended. Please log in again to continue.'
+        reason: code,
+        title: error.response?.data?.title,
+        message: error.response?.data?.message
       });
     }
+
+    if (status === 401 && hasStoredSession && !code) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+      emitSessionExpired({
+        reason: SESSION_EXPIRY_REASONS.SESSION_INVALID
+      });
+    }
+
     return Promise.reject(error);
   }
 );

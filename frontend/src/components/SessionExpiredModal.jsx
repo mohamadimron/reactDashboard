@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, LogIn } from 'lucide-react';
+import { resolveSessionExpiryDetail } from '../utils/sessionExpiry';
 
 const SessionExpiredModal = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,8 +9,9 @@ const SessionExpiredModal = () => {
 
   useEffect(() => {
     const handleExpired = (e) => {
-      setMessage(e.detail.message);
-      setTitle(e.detail.title || 'Session Expired');
+      const detail = resolveSessionExpiryDetail(e.detail);
+      setMessage(detail.message);
+      setTitle(detail.title);
       setIsOpen(true);
     };
 

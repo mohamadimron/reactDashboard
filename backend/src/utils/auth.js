@@ -1,8 +1,11 @@
+const { getRequiredEnv } = require('./env');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
+const JWT_SECRET = getRequiredEnv('JWT_SECRET');
+
 const generateToken = (userId, role, sessionId) => {
-  return jwt.sign({ userId, role, sessionId }, process.env.JWT_SECRET || 'secret', {
+  return jwt.sign({ userId, role, sessionId }, JWT_SECRET, {
     expiresIn: '1d',
   });
 };

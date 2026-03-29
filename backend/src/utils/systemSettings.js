@@ -134,12 +134,7 @@ const upsertSystemSetting = async (key, value) => {
   return rows[0] || { key, value };
 };
 
-const resolveRegistrationRole = async ({ userCount }) => {
-  if (userCount === 0) {
-    const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
-    return adminRole;
-  }
-
+const resolveRegistrationRole = async () => {
   const configuredRoleName = await getSystemSetting(SYSTEM_SETTING_KEYS.DEFAULT_REGISTRATION_ROLE);
   const normalizedConfiguredRole = configuredRoleName?.trim().toUpperCase();
   const roleName =
