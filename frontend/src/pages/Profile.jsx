@@ -24,6 +24,7 @@ const Profile = () => {
   const { user, updateUserContext } = useAuth();
   const [profileMsg, setProfileMsg] = useState({ type: '', text: '' });
   const [passMsg, setPassMsg] = useState({ type: '', text: '' });
+  const [avatarMsg, setAvatarMsg] = useState({ type: '', text: '' });
   const [avatarLoading, setAvatarLoading] = useState(false);
 
   const { register: regProfile, handleSubmit: handleProfile, formState: { errors: errorsP, isSubmitting: isSubP } } = useForm({
@@ -50,19 +51,21 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setAvatarMsg({ type: '', text: '' });
+
     const formData = new FormData();
     formData.append('avatar', file);
 
     try {
       setAvatarLoading(true);
-      const res = await api.put('/users/profile/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.put('/users/profile/avatar', formData);
       updateUserContext(res.data);
+      setAvatarMsg({ type: 'success', text: 'Avatar updated successfully!' });
     } catch (err) {
-      alert(err.response?.data?.message || 'Avatar upload failed');
+      setAvatarMsg({ type: 'error', text: err.response?.data?.message || 'Avatar upload failed' });
     } finally {
       setAvatarLoading(false);
+      e.target.value = '';
     }
   };
 
@@ -89,6 +92,13 @@ const Profile = () => {
         <div className="px-8 pb-8">
           <div className="relative -mt-16 flex items-end space-x-5 mb-8">
             <div className="relative">
+              <input
+                id="profile-avatar-upload"
+                type="file"
+                className="hidden"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                onChange={onAvatarChange}
+              />
               <div className="w-32 h-32 bg-white rounded-2xl p-1 shadow-xl overflow-hidden">
                 <div className="w-full h-full bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-black text-4xl overflow-hidden">
                   {avatarUrl ? (
@@ -103,14 +113,26 @@ const Profile = () => {
                   )}
                 </div>
               </div>
-              <label className="absolute bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all border-4 border-white cursor-pointer">
+              <label
+                htmlFor="profile-avatar-upload"
+                className={`absolute bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all border-4 border-white cursor-pointer ${
+                  avatarLoading ? 'pointer-events-none opacity-70' : ''
+                }`}
+              >
                 <Camera size={18} />
-                <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
               </label>
             </div>
             <div className="pb-2">
               <h2 className="text-3xl font-black text-gray-900 leading-tight">{user?.name}</h2>
               <p className="text-blue-600 font-bold uppercase tracking-widest text-xs mt-1">{user?.role} ACCOUNT</p>
+              {avatarMsg.text && (
+                <div className={`mt-3 rounded-2xl px-4 py-3 text-sm font-bold flex items-center gap-2 ${
+                  avatarMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {avatarMsg.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                  <span>{avatarMsg.text}</span>
+                </div>
+              )}
             </div>
           </div>
 
