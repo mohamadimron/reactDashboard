@@ -2,7 +2,9 @@ const prisma = require('../utils/db');
 const {
   SYSTEM_SETTING_KEYS,
   DEFAULT_PUBLIC_REGISTRATION_ROLE,
+  DEFAULT_REGISTER_PAGE_ENABLED,
   getSystemSettingsMap,
+  parseBooleanSetting,
   upsertSystemSetting
 } = require('../utils/systemSettings');
 
@@ -12,11 +14,30 @@ const getSystemSettings = async (req, res) => {
     const settings = await getSystemSettingsMap();
     res.json({
       defaultRegistrationRole:
-        settings[SYSTEM_SETTING_KEYS.DEFAULT_REGISTRATION_ROLE] || DEFAULT_PUBLIC_REGISTRATION_ROLE
+        settings[SYSTEM_SETTING_KEYS.DEFAULT_REGISTRATION_ROLE] || DEFAULT_PUBLIC_REGISTRATION_ROLE,
+      registerPageEnabled: parseBooleanSetting(
+        settings[SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED],
+        DEFAULT_REGISTER_PAGE_ENABLED
+      )
     });
   } catch (error) {
     console.error('[Settings] Fetch Error:', error);
     res.status(500).json({ message: 'Error fetching system settings' });
+  }
+};
+
+const getPublicSystemSettings = async (req, res) => {
+  try {
+    const settings = await getSystemSettingsMap();
+    res.json({
+      registerPageEnabled: parseBooleanSetting(
+        settings[SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED],
+        DEFAULT_REGISTER_PAGE_ENABLED
+      )
+    });
+  } catch (error) {
+    console.error('[Settings] Public Fetch Error:', error);
+    res.status(500).json({ message: 'Error fetching public system settings' });
   }
 };
 
@@ -48,6 +69,12 @@ const updateSetting = async (req, res) => {
       return res.json(setting);
     }
 
+    if (key === SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED) {
+      const normalizedValue = parseBooleanSetting(value, DEFAULT_REGISTER_PAGE_ENABLED);
+      const setting = await upsertSystemSetting(key, normalizedValue ? 'true' : 'false');
+      return res.json(setting);
+    }
+
     const setting = await upsertSystemSetting(key, String(value ?? ''));
     res.json(setting);
   } catch (error) {
@@ -56,4 +83,4 @@ const updateSetting = async (req, res) => {
   }
 };
 
-module.exports = { getSystemSettings, updateSetting };
+module.exports = { getSystemSettings, getPublicSystemSettings, updateSetting };

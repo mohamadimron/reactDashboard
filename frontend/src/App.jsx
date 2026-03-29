@@ -3,7 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import RegisterRouteGate from './components/RegisterRouteGate';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
@@ -24,7 +24,7 @@ function App() {
           
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<RegisterRouteGate />} />
           </Route>
 
           <Route element={<ProtectedRoute />}>

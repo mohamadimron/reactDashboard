@@ -1,7 +1,7 @@
 const prisma = require('../utils/db');
 const { hashPassword, comparePassword, generateToken } = require('../utils/auth');
 const { logAuthEvent } = require('../utils/authLogger');
-const { resolveRegistrationRole } = require('../utils/systemSettings');
+const { resolveRegistrationRole, isRegisterPageEnabled } = require('../utils/systemSettings');
 const z = require('zod');
 
 // Validation schema
@@ -31,8 +31,14 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Dynamic Role & Status lookup
     const count = await prisma.user.count();
+    const registerEnabled = await isRegisterPageEnabled();
+
+    if (count > 0 && !registerEnabled) {
+      return res.status(403).json({ message: 'Public registration is currently disabled' });
+    }
+
+    // Dynamic Role & Status lookup
     const [role, status] = await Promise.all([
       resolveRegistrationRole({ userCount: count }),
       prisma.status.findUnique({ where: { name: 'ACTIVE' } })

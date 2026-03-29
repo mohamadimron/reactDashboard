@@ -3,7 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -15,6 +16,30 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [registerEnabled, setRegisterEnabled] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchRegisterStatus = async () => {
+      try {
+        const res = await api.get('/settings/public');
+        if (mounted) {
+          setRegisterEnabled(Boolean(res.data?.registerPageEnabled));
+        }
+      } catch (err) {
+        if (mounted) {
+          setRegisterEnabled(false);
+        }
+      }
+    };
+
+    fetchRegisterStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const {
     register,
@@ -72,14 +97,16 @@ const Login = () => {
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-            Sign up
-          </Link>
-        </p>
-      </div>
+      {registerEnabled && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      )}
     </div>
   );
 };

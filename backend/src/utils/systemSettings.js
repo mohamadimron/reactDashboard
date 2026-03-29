@@ -3,10 +3,12 @@ const pool = prisma.pool;
 const { randomUUID } = require('crypto');
 
 const SYSTEM_SETTING_KEYS = {
-  DEFAULT_REGISTRATION_ROLE: 'defaultRegistrationRole'
+  DEFAULT_REGISTRATION_ROLE: 'defaultRegistrationRole',
+  REGISTER_PAGE_ENABLED: 'registerPageEnabled'
 };
 
 const DEFAULT_PUBLIC_REGISTRATION_ROLE = 'USER';
+const DEFAULT_REGISTER_PAGE_ENABLED = true;
 
 let systemSettingColumnsCache = null;
 
@@ -164,11 +166,30 @@ const resolveRegistrationRole = async ({ userCount }) => {
   });
 };
 
+const parseBooleanSetting = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return fallback;
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (normalizedValue === 'true') return true;
+  if (normalizedValue === 'false') return false;
+
+  return fallback;
+};
+
+const isRegisterPageEnabled = async () => {
+  const rawValue = await getSystemSetting(SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED);
+  return parseBooleanSetting(rawValue, DEFAULT_REGISTER_PAGE_ENABLED);
+};
+
 module.exports = {
   SYSTEM_SETTING_KEYS,
   DEFAULT_PUBLIC_REGISTRATION_ROLE,
+  DEFAULT_REGISTER_PAGE_ENABLED,
   getSystemSettingsMap,
   getSystemSetting,
   upsertSystemSetting,
-  resolveRegistrationRole
+  resolveRegistrationRole,
+  parseBooleanSetting,
+  isRegisterPageEnabled
 };

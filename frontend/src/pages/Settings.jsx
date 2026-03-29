@@ -11,6 +11,7 @@ const Settings = () => {
   const [roles, setRoles] = useState([]);
   const [registrationRoles, setRegistrationRoles] = useState([]);
   const [defaultRegistrationRole, setDefaultRegistrationRole] = useState('');
+  const [registerPageEnabled, setRegisterPageEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('roles'); // 'roles' or 'access'
   const [newRoleName, setNewRoleName] = useState('');
@@ -41,6 +42,7 @@ const Settings = () => {
         selectableRegistrationRoles[0]?.name ||
         ''
       );
+      setRegisterPageEnabled(Boolean(settingsRes.data?.registerPageEnabled));
     } catch (err) {
       console.error('Failed to fetch settings data', err);
     } finally {
@@ -103,6 +105,21 @@ const Settings = () => {
       showSuccess(`Default registration role updated to ${defaultRegistrationRole}.`);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update registration default role');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveRegisterPageAccess = async () => {
+    setIsSaving('register-page-access');
+    try {
+      await api.put('/settings', {
+        key: 'registerPageEnabled',
+        value: registerPageEnabled
+      });
+      showSuccess(`Register page has been ${registerPageEnabled ? 'enabled' : 'disabled'}.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update register page access');
     } finally {
       setIsSaving(false);
     }
@@ -212,6 +229,97 @@ const Settings = () => {
               </div>
 
               <div className="space-y-4">
+                <div className="rounded-[2rem] border border-gray-100 bg-gray-50/70 p-5">
+                  <div>
+                    <p className="text-sm font-black text-gray-900">Register Page Access</p>
+                    <p className="text-xs font-medium text-gray-500 mt-1 leading-relaxed">
+                      When disabled, the `/register` page is hidden from UI and direct access is redirected away.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label
+                      className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
+                        registerPageEnabled
+                          ? 'border-emerald-300 bg-emerald-50 shadow-sm shadow-emerald-100'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="register-page-access"
+                        className="sr-only"
+                        checked={registerPageEnabled}
+                        onChange={() => setRegisterPageEnabled(true)}
+                      />
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                            registerPageEnabled ? 'border-emerald-500' : 'border-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              registerPageEnabled ? 'bg-emerald-500' : 'bg-transparent'
+                            }`}
+                          />
+                        </span>
+                        <div>
+                          <p className="text-sm font-black text-gray-900">Enabled</p>
+                          <p className="text-xs font-medium text-gray-500 mt-1">
+                            Show register entry points and allow public sign up.
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`rounded-[1.5rem] border-2 px-4 py-4 cursor-pointer transition-all ${
+                        !registerPageEnabled
+                          ? 'border-rose-300 bg-rose-50 shadow-sm shadow-rose-100'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="register-page-access"
+                        className="sr-only"
+                        checked={!registerPageEnabled}
+                        onChange={() => setRegisterPageEnabled(false)}
+                      />
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                            !registerPageEnabled ? 'border-rose-500' : 'border-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              !registerPageEnabled ? 'bg-rose-500' : 'bg-transparent'
+                            }`}
+                          />
+                        </span>
+                        <div>
+                          <p className="text-sm font-black text-gray-900">Disabled</p>
+                          <p className="text-xs font-medium text-gray-500 mt-1">
+                            Hide register access and block direct registration requests.
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={saveRegisterPageAccess}
+                    disabled={isSaving === 'register-page-access'}
+                    className="mt-4 w-full bg-gray-900 text-white rounded-2xl py-3.5 font-black text-sm shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSaving === 'register-page-access' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    <span>Save Register Access</span>
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">
                     Default Role for Register Page
