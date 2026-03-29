@@ -12,7 +12,7 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
-  console.log('Login: Component rendering');
+  //console.log('Login: Component rendering');
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');

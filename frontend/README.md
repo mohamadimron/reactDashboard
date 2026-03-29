@@ -1,16 +1,32 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend project ini dibangun dengan `React + Vite`.
 
-Currently, two official plugins are available:
+## Script
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
 
-## React Compiler
+## Modul Penting
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `src/App.jsx`
+  Definisi route utama aplikasi.
+- `src/context/AuthContext.jsx`
+  State auth global dan local inactivity logout.
+- `src/services/api.js`
+  Axios instance global.
+- `src/components/ProtectedRoute.jsx`
+  Proteksi route dashboard.
+- `src/components/RegisterRouteGate.jsx`
+  Proteksi route `/register` berdasarkan public system setting.
+- `src/pages/Settings.jsx`
+  UI pengaturan role, permission, default role register, dan enable/disable halaman register.
 
-## Expanding the ESLint configuration
+## Catatan
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Link `Sign up` di halaman login hanya muncul jika `registerPageEnabled` aktif.
+- Route `/register` juga tetap divalidasi lagi melalui endpoint public settings agar tidak hanya bergantung pada tampilan UI.

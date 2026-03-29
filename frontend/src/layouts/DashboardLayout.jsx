@@ -10,19 +10,32 @@ const DashboardLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadTotal, setUnreadTotal] = useState(0);
+  const canViewMessages = Boolean(user?.permissions?.canViewMessages);
 
   const fetchUnreadCount = async () => {
+    if (!canViewMessages) {
+      setUnreadTotal(0);
+      return;
+    }
+
     try {
       const res = await api.get('/messages');
       const data = Array.isArray(res.data) ? res.data : [];
       const total = data.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
       setUnreadTotal(total);
     } catch (err) {
-      console.error('Failed to fetch unread count', err);
+      if (err.response?.status !== 403) {
+        console.error('Failed to fetch unread count', err);
+      }
     }
   };
 
   useEffect(() => {
+    if (!canViewMessages) {
+      setUnreadTotal(0);
+      return;
+    }
+
     fetchUnreadCount();
     
     // Listen for manual refresh events (e.g. from Messages page)
@@ -34,7 +47,7 @@ const DashboardLayout = () => {
       clearInterval(interval);
       window.removeEventListener('refresh-unread', handleRefresh);
     };
-  }, []);
+  }, [canViewMessages]);
 
   const handleLogout = async () => {
     await logout();
@@ -44,7 +57,7 @@ const DashboardLayout = () => {
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: true },
     { to: '/dashboard/profile', label: 'My Profile', icon: User, permission: true },
-    { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, permission: user?.permissions?.canViewMessages },
+    { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, permission: canViewMessages },
     { to: '/dashboard/users', label: 'User Management', icon: Users, permission: user?.permissions?.canViewUsers },
     { to: '/dashboard/logs', label: 'Auth Logs', icon: ClipboardList, permission: user?.permissions?.canViewLogs },
     { to: '/dashboard/settings', label: 'System Settings', icon: Settings, permission: user?.permissions?.canManageSettings },

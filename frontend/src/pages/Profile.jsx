@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,9 @@ const Profile = () => {
   const [passMsg, setPassMsg] = useState({ type: '', text: '' });
   const [avatarMsg, setAvatarMsg] = useState({ type: '', text: '' });
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [canUseCamera, setCanUseCamera] = useState(false);
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const { register: regProfile, handleSubmit: handleProfile, formState: { errors: errorsP, isSubmitting: isSubP } } = useForm({
     resolver: zodResolver(profileSchema),
@@ -35,6 +38,14 @@ const Profile = () => {
   const { register: regPass, handleSubmit: handlePass, reset: resetPass, formState: { errors: errorsV, isSubmitting: isSubV } } = useForm({
     resolver: zodResolver(passwordSchema)
   });
+
+  useEffect(() => {
+    const hasTouch = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+    const looksMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+    const hasCameraApi = typeof navigator.mediaDevices?.getUserMedia === 'function';
+
+    setCanUseCamera(Boolean((hasTouch || looksMobile) && hasCameraApi));
+  }, []);
 
   const onProfileSubmit = async (data) => {
     try {
@@ -90,14 +101,25 @@ const Profile = () => {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
         <div className="px-8 pb-8">
-          <div className="relative -mt-16 flex items-end space-x-5 mb-8">
-            <div className="relative">
+          <div className="relative -mt-16 mb-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+              <div className="relative w-fit">
               <input
                 id="profile-avatar-upload"
                 type="file"
                 className="hidden"
                 accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                 onChange={onAvatarChange}
+                ref={galleryInputRef}
+              />
+              <input
+                id="profile-avatar-camera-upload"
+                type="file"
+                className="hidden"
+                accept="image/*"
+                capture="user"
+                onChange={onAvatarChange}
+                ref={cameraInputRef}
               />
               <div className="w-32 h-32 bg-white rounded-2xl p-1 shadow-xl overflow-hidden">
                 <div className="w-full h-full bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-black text-4xl overflow-hidden">
@@ -121,20 +143,46 @@ const Profile = () => {
               >
                 <Camera size={18} />
               </label>
+              </div>
+
+              <div className="min-w-0 flex-1 sm:pb-2">
+                <h2 className="text-3xl font-black text-gray-900 leading-tight break-words">{user?.name}</h2>
+                <p className="text-blue-600 font-bold uppercase tracking-widest text-xs mt-1">{user?.role} ACCOUNT</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 sm:max-w-xs sm:justify-end sm:self-end">
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={avatarLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-200 transition-all hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Camera size={14} />
+                  <span>Choose Photo</span>
+                </button>
+                {canUseCamera && (
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    disabled={avatarLoading}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-black text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <Camera size={14} />
+                    <span>Use Camera</span>
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="pb-2">
-              <h2 className="text-3xl font-black text-gray-900 leading-tight">{user?.name}</h2>
-              <p className="text-blue-600 font-bold uppercase tracking-widest text-xs mt-1">{user?.role} ACCOUNT</p>
-              {avatarMsg.text && (
-                <div className={`mt-3 rounded-2xl px-4 py-3 text-sm font-bold flex items-center gap-2 ${
-                  avatarMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                }`}>
-                  {avatarMsg.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                  <span>{avatarMsg.text}</span>
-                </div>
-              )}
+
+            {avatarMsg.text && (
+              <div className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold flex items-start gap-2 ${
+                avatarMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              }`}>
+                {avatarMsg.type === 'success' ? <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />}
+                <span className="min-w-0 break-words">{avatarMsg.text}</span>
+              </div>
+            )}
             </div>
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Profile Info Form */}

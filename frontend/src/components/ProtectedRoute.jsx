@@ -19,7 +19,6 @@ const ProtectedRoute = ({ children, requireAdmin, permissionKey }) => {
 
   // 2. Check for granular permission if key is provided
   if (permissionKey && !user.permissions?.[permissionKey]) {
-    console.warn(`[RBAC] Access denied for permission: ${permissionKey}`);
     return <Navigate to="/dashboard" replace />;
   }
 
