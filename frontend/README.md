@@ -16,9 +16,9 @@ npm run lint
 - `src/App.jsx`
   Definisi route utama aplikasi.
 - `src/context/AuthContext.jsx`
-  State auth global, login/register/logout, dan inactivity timer 30 menit.
+  State auth global di memory, bootstrap session via `/auth/me`, login/register/logout, dan inactivity timer 30 menit.
 - `src/services/api.js`
-  Axios instance global, auth header, dan handling session expiry dari backend.
+  Axios instance global dengan `withCredentials` dan handling session expiry dari backend.
 - `src/utils/sessionExpiry.js`
   Mapping reason popup session expired.
 - `src/components/SessionExpiredModal.jsx`
@@ -48,6 +48,8 @@ Frontend menangani beberapa reason session popup:
 - session invalid generic
 
 Popup session expired memakai payload yang sudah dinormalisasi, sehingga judul dan pesan tetap konsisten walau event datang dari beberapa sumber berbeda.
+
+Frontend tidak lagi menyimpan token maupun data user di `localStorage` atau `sessionStorage`.
 
 ## Avatar Upload
 

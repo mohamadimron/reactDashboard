@@ -11,6 +11,7 @@ const logRoutes = require('./routes/logRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const roleRoutes = require('./routes/roleRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const { protect } = require('./middlewares/authMiddleware');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use((req, res, next) => {
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
   }
   
   // These headers must be present on ALL responses, including preflight
@@ -73,8 +75,19 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// 5. Static Files (Served under /api/uploads)
-app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// 5. Protected Upload Files
+app.use(
+  '/api/uploads',
+  protect,
+  express.static(path.join(process.cwd(), 'uploads'), {
+    fallthrough: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  })
+);
 
 // 6. Routes
 app.use('/api/auth', authRoutes);
@@ -91,6 +104,11 @@ app.get('/', (req, res) => {
 // 7. Global Error Handler (Guaranteed to not leak info but maintain CORS)
 app.use((err, req, res, next) => {
   console.error('[CRITICAL ERROR]', err.stack);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
   res.status(err.status || 500).json({
     message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
   });

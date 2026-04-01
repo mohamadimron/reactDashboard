@@ -61,6 +61,8 @@ npm run dev
   Koneksi database runtime dari `DATABASE_URL`.
 - `src/utils/auth.js`
   Signing JWT dan helper password.
+- `src/utils/authCookie.js`
+  Helper cookie auth `HttpOnly`.
 - `src/utils/userSerializer.js`
   Sanitasi respons user agar field sensitif tidak keluar ke frontend.
 - `src/middlewares/authMiddleware.js`
@@ -95,7 +97,7 @@ Aturan register:
 
 ### Single session
 
-Setiap login membuat `sessionId` baru. Jika `lastSessionId` di database tidak sama dengan token aktif, backend membalas `401` dengan code `SESSION_REPLACED`.
+Setiap login membuat `sessionId` baru dan mengirim JWT melalui cookie `HttpOnly`. Jika `lastSessionId` di database tidak sama dengan session aktif, backend membalas `401` dengan code `SESSION_REPLACED`.
 
 ### Idle timeout backend
 
@@ -133,5 +135,6 @@ Behavior:
 ## Catatan
 
 - backend bergantung pada `DATABASE_URL` dan `JWT_SECRET` di `.env`
+- auth session dikirim melalui cookie `HttpOnly`, bukan token di browser storage
 - permission `canManageSettings` diperlukan untuk mengubah settings internal
 - tabel `SystemSetting` dibuat otomatis jika belum ada

@@ -3,6 +3,7 @@ const { hashPassword, comparePassword, generateToken } = require('../utils/auth'
 const { logAuthEvent } = require('../utils/authLogger');
 const { resolveRegistrationRole, isRegisterPageEnabled } = require('../utils/systemSettings');
 const { sanitizeUser } = require('../utils/userSerializer');
+const { setAuthCookie, clearAuthCookie } = require('../utils/authCookie');
 const z = require('zod');
 
 // Validation schema
@@ -77,6 +78,7 @@ const register = async (req, res) => {
     });
 
     const token = generateToken(user.id, user.role.name, sessionId);
+    setAuthCookie(res, token);
 
     logAuthEvent({
       userId: user.id,
@@ -87,7 +89,6 @@ const register = async (req, res) => {
 
     res.status(201).json({
       ...sanitizeUser(user),
-      token,
     });
   } catch (error) {
     console.error('[Auth] Register Error:', error);
@@ -137,21 +138,22 @@ const login = async (req, res) => {
     const ua = parser.getResult();
     const deviceInfo = `${ua.browser.name || 'Unknown'} ${ua.browser.version || ''} on ${ua.os.name || 'Unknown'} ${ua.os.version || ''} (${ua.device.type ? ua.device.type.charAt(0).toUpperCase() + ua.device.type.slice(1) : 'Desktop'})`;
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         lastLogin: new Date(),
         lastActivity: new Date(),
         lastSessionId: sessionId,
         deviceInfo: deviceInfo
-      }
+      },
+      include: { role: true, status: true }
     });
 
+    setAuthCookie(res, token);
     logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_SUCCESS', req });
 
     res.json({
-      ...sanitizeUser(user),
-      token,
+      ...sanitizeUser(updatedUser),
     });
   } catch (error) {
     console.error('[Auth] Login Error:', error);
@@ -161,6 +163,7 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
+    clearAuthCookie(res);
     const userId = req.user.userId;
     const user = await prisma.user.findUnique({ where: { id: userId } });
     
@@ -179,8 +182,31 @@ const logout = async (req, res) => {
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('[Auth] Logout Error:', error);
+    clearAuthCookie(res);
     res.status(500).json({ message: 'Server Error during logout' });
   }
 };
 
-module.exports = { register, login, logout };
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: { role: true, status: true }
+    });
+
+    if (!user) {
+      clearAuthCookie(res);
+      return res.status(401).json({
+        message: 'Session invalid. Please log in again.',
+        code: 'SESSION_INVALID'
+      });
+    }
+
+    res.json(sanitizeUser(user));
+  } catch (error) {
+    console.error('[Auth] Current User Error:', error);
+    res.status(500).json({ message: 'Server Error while fetching session user' });
+  }
+};
+
+module.exports = { register, login, logout, getCurrentUser };

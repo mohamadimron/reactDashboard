@@ -1,15 +1,16 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/db');
 const { getRequiredEnv } = require('../utils/env');
+const { clearAuthCookie, getAuthTokenFromRequest } = require('../utils/authCookie');
 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 const JWT_SECRET = getRequiredEnv('JWT_SECRET');
 
 const protect = async (req, res, next) => {
-  let token;
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  const token = getAuthTokenFromRequest(req);
+
+  if (token) {
     try {
-      token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       
       // Enforce single session: Check if sessionId matches latest in DB
@@ -19,6 +20,7 @@ const protect = async (req, res, next) => {
       });
 
       if (!user || user.lastSessionId !== decoded.sessionId) {
+        clearAuthCookie(res);
         return res.status(401).json({ 
           title: 'Multiple Login Detected',
           message: 'Session invalidated. You have logged in from another device.',
@@ -39,6 +41,7 @@ const protect = async (req, res, next) => {
           }
         });
 
+        clearAuthCookie(res);
         return res.status(401).json({
           title: 'Session Expired',
           message: 'Your session has ended due to more than 1 hour of inactivity. Please log in again to continue.',
@@ -67,16 +70,20 @@ const protect = async (req, res, next) => {
           canDeleteMessages: user.role.canDeleteMessages
         }
       };
-      next();
+      return next();
     } catch (error) {
       console.error('[Auth] Middleware Error:', error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      clearAuthCookie(res);
+      return res.status(401).json({
+        title: 'Session Ended',
+        message: 'Your session is no longer valid. Please log in again to continue.',
+        code: 'SESSION_INVALID'
+      });
     }
   }
 
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
-  }
+  clearAuthCookie(res);
+  return res.status(401).json({ message: 'Not authorized, no token' });
 };
 
 // Legacy ADMIN check (for critical system operations)

@@ -4,7 +4,7 @@ Aplikasi dashboard full-stack berbasis `React + Vite` di frontend dan `Node.js +
 
 ## Fitur Utama
 
-- Login, register, logout dengan JWT
+- Login, register, logout dengan JWT berbasis cookie `HttpOnly`
 - Password hashing memakai `bcryptjs`
 - Single-session enforcement berbasis `lastSessionId`
 - Idle timeout:
@@ -47,9 +47,9 @@ Aplikasi dashboard full-stack berbasis `React + Vite` di frontend dan `Node.js +
 ### Frontend
 
 - `frontend/src/context/AuthContext.jsx`
-  State auth global, inactivity timer 30 menit, login/register/logout, dan sync user context.
+  State auth global di memory, bootstrap session via `/auth/me`, inactivity timer 30 menit, login/register/logout, dan sync user context.
 - `frontend/src/services/api.js`
-  Axios instance global, auth header, dan penanganan popup session expired.
+  Axios instance global berbasis `withCredentials` dan penanganan popup session expired.
 - `frontend/src/utils/sessionExpiry.js`
   Sumber mapping alasan session berakhir dan payload popup.
 - `frontend/src/components/SessionExpiredModal.jsx`
@@ -77,6 +77,8 @@ Aplikasi dashboard full-stack berbasis `React + Vite` di frontend dan `Node.js +
   Koneksi database runtime dari `DATABASE_URL`.
 - `backend/src/utils/auth.js`
   Signing JWT dan password helper. `JWT_SECRET` wajib ada.
+- `backend/src/utils/authCookie.js`
+  Helper cookie auth `HttpOnly` untuk set / clear session cookie.
 - `backend/src/utils/userSerializer.js`
   Sanitasi semua respons user agar field sensitif tidak keluar ke client.
 - `backend/src/utils/upload.js`
@@ -287,14 +289,14 @@ Endpoint public setting:
 
 ### Single Session
 
-Setiap login membuat `sessionId` baru dan menyimpannya di database. Jika user login dari browser/device lain, token lama tidak valid lagi.
+Setiap login membuat `sessionId` baru dan menyimpannya di database. Session dikirim ke browser melalui cookie `HttpOnly`. Jika user login dari browser/device lain, session lama tidak valid lagi.
 
 ### Idle Timeout Frontend
 
 Frontend memonitor aktivitas browser seperti klik, keyboard, scroll, touch, dan mouse movement. Jika tidak ada aktivitas selama 30 menit:
 
-- token dan user dihapus dari storage lokal
-- user logout dari state frontend
+- cookie logout dipanggil ke backend
+- user logout dari state memory frontend
 - popup `Session Expired` tampil dengan pesan khusus inactivity browser
 
 ### Idle Timeout Backend
@@ -415,6 +417,7 @@ Cek:
 - runtime backend membaca koneksi database dari `.env` melalui `DATABASE_URL`
 - `JWT_SECRET` wajib ada sebelum server dijalankan
 - semua respons user yang keluar ke client sudah disanitasi
+- auth frontend tidak lagi memakai `localStorage` atau `sessionStorage`
 - tabel `SystemSetting` dibuat otomatis oleh backend saat pertama kali dibutuhkan
 - route settings internal memerlukan permission `canManageSettings`
 

@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect, useContext, useRef } from 'react';
 import api from '../services/api';
 import { emitSessionExpired, resetSessionExpiryNotice, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
+import { setAuthenticatedSession } from '../utils/authSessionState';
+import { clearAuthSessionHint, hasAuthSessionHint, setAuthSessionHint } from '../utils/authSessionHint';
 
 const AuthContext = createContext();
 
@@ -21,8 +23,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handleAutoLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    void api.post('/auth/logout', null, {
+      skipSessionExpiryHandling: true
+    }).catch(() => {});
+
+    setAuthenticatedSession(false);
     setUser(null);
 
     emitSessionExpired({
@@ -32,8 +37,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      setAuthenticatedSession(false);
+      clearAuthSessionHint();
       setUser(null);
     };
 
@@ -42,19 +47,51 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    let isMounted = true;
+
+    const bootstrapAuth = async () => {
+      const sessionHintExists = hasAuthSessionHint();
+      const pathname = window.location.pathname;
+      const isAuthScreen = pathname === '/login' || pathname === '/register';
+
+      if (!sessionHintExists && isAuthScreen) {
+        if (isMounted) {
+          setAuthenticatedSession(false);
+          clearAuthSessionHint();
+          setUser(null);
+          setLoading(false);
+        }
+        return;
       }
-    }
-    setLoading(false);
+
+      try {
+        const response = await api.get('/auth/me', {
+          skipSessionExpiryHandling: true
+        });
+
+        if (!isMounted) return;
+
+        setAuthenticatedSession(true);
+        setAuthSessionHint();
+        setUser(response.data);
+      } catch (error) {
+        if (!isMounted) return;
+
+        setAuthenticatedSession(false);
+        clearAuthSessionHint();
+        setUser(null);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    bootstrapAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Listen for user activity to reset timer
@@ -76,40 +113,37 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
-    const { token, ...userData } = response.data;
     resetSessionExpiryNotice();
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    setAuthenticatedSession(true);
+    setAuthSessionHint();
+    setUser(response.data);
   };
 
   const register = async (name, email, password) => {
     const response = await api.post('/auth/register', { name, email, password });
-    const { token, ...userData } = response.data;
     resetSessionExpiryNotice();
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    setAuthenticatedSession(true);
+    setAuthSessionHint();
+    setUser(response.data);
   };
 
   const logout = async () => {
     try {
-      if (localStorage.getItem('token')) {
-        await api.post('/auth/logout');
-      }
+      await api.post('/auth/logout', null, {
+        skipSessionExpiryHandling: true
+      });
     } catch (error) {
       console.error('Logout request failed:', error);
     }
 
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    setAuthenticatedSession(false);
+    clearAuthSessionHint();
     resetSessionExpiryNotice();
     setUser(null);
   };
 
   const updateUserContext = (newData) => {
     const updatedUser = { ...user, ...newData };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
     setUser(updatedUser);
   };
 
