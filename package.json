@@ -1,0 +1,13 @@
+{
+  "name": "react-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bash -lc 'trap \"kill 0\" EXIT; (npm --prefix backend run dev 2>&1 | sed \"s/^/[backend] /\") & (npm --prefix frontend run dev 2>&1 | sed \"s/^/[frontend] /\") & wait'",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend run start",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
+  }
+}

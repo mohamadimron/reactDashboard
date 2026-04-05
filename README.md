@@ -172,6 +172,14 @@ cd frontend
 npm install
 ```
 
+### Opsi satu perintah dari root
+
+Jika ingin install dependency backend dan frontend sekaligus dari root project:
+
+```bash
+npm run install:all
+```
+
 ## Seed Data Awal
 
 Seed utama:
@@ -210,6 +218,17 @@ node seed_messages.js
 
 ## Menjalankan Project
 
+### Satu command dari root
+
+Setelah dependency backend dan frontend sudah terpasang, jalankan:
+
+```bash
+npm run dev
+```
+
+Command ini akan menjalankan backend dan frontend secara paralel dari root project.
+Log terminal juga sudah diberi prefix `[backend]` dan `[frontend]` agar output lebih mudah dibaca.
+
 ### Backend
 
 ```bash
@@ -233,6 +252,12 @@ Default lokal:
 - `http://localhost:5173`
 
 ## Build
+
+### Build dari root
+
+```bash
+npm run build
+```
 
 ### Frontend
 
@@ -420,6 +445,7 @@ Cek:
 - auth frontend tidak lagi memakai `localStorage` atau `sessionStorage`
 - tabel `SystemSetting` dibuat otomatis oleh backend saat pertama kali dibutuhkan
 - route settings internal memerlukan permission `canManageSettings`
+- root project sekarang memiliki `package.json` sendiri untuk menjalankan backend dan frontend dengan satu command
 
 ## Dokumentasi Tambahan
 

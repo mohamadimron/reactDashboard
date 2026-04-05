@@ -53,6 +53,15 @@ Seed ini menyiapkan role dasar, status dasar, dan admin awal.
 npm run dev
 ```
 
+Atau dari root project:
+
+```bash
+cd ..
+npm run dev
+```
+
+Saat dijalankan dari root, output terminal akan diberi prefix `[backend]` dan `[frontend]`.
+
 ## File Penting
 
 - `src/index.js`

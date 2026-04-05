@@ -11,6 +11,16 @@ npm run preview
 npm run lint
 ```
 
+Project root juga menyediakan command gabungan:
+
+```bash
+cd ..
+npm run dev
+```
+
+Command ini akan menjalankan backend dan frontend bersamaan.
+Output terminal dari root command sudah diberi prefix `[backend]` dan `[frontend]`.
+
 ## Modul Penting
 
 - `src/App.jsx`
