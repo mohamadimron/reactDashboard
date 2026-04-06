@@ -1,6 +1,11 @@
 const prisma = require('../utils/db');
 const { hashPassword } = require('../utils/auth');
 const { sanitizeUser, sanitizeUsers } = require('../utils/userSerializer');
+const {
+  AVATAR_UPLOAD_LIMIT_PER_DAY,
+  reserveAvatarUploadSlot,
+  releaseAvatarUploadSlot
+} = require('../utils/avatarUploadQuota');
 
 // Get all users (with pagination and search)
 const getUsers = async (req, res) => {
@@ -252,15 +257,34 @@ const uploadAvatar = async (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const sharp = require('sharp');
+  let reservedQuotaSlot = false;
+  let originalPath = null;
+  let compressedPath = null;
 
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const userId = req.user.userId;
-    const originalPath = req.file.path;
+    originalPath = req.file.path;
     const compressedFilename = `avatar-optimized-${Date.now()}.webp`;
-    const compressedPath = path.join(process.cwd(), 'uploads', compressedFilename);
+    compressedPath = path.join(process.cwd(), 'uploads', compressedFilename);
     const dbAvatarPath = `/uploads/${compressedFilename}`;
+    const quotaReservation = await reserveAvatarUploadSlot(userId);
+
+    if (!quotaReservation.granted) {
+      try {
+        if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+      } catch (cleanupError) {
+        console.warn('[Image] Upload quota cleanup failed:', cleanupError.message);
+      }
+
+      return res.status(429).json({
+        message: `You have reached the daily upload limit.`
+        //message: `Avatar upload limit reached. You can upload up to ${AVATAR_UPLOAD_LIMIT_PER_DAY} times per day.`
+      });
+    }
+
+    reservedQuotaSlot = true;
 
     console.log(`[Image] Processing ${req.file.size} bytes for user ${userId}`);
 
@@ -313,6 +337,27 @@ const uploadAvatar = async (req, res) => {
     res.json(sanitizeUser(user));
   } catch (error) {
     console.error('[Image] Processing Error:', error);
+
+    try {
+      if (originalPath && fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+    } catch (cleanupError) {
+      console.warn('[Image] Temp file cleanup failed after error:', cleanupError.message);
+    }
+
+    try {
+      if (compressedPath && fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath);
+    } catch (cleanupError) {
+      console.warn('[Image] Compressed file cleanup failed after error:', cleanupError.message);
+    }
+
+    if (reservedQuotaSlot) {
+      try {
+        await releaseAvatarUploadSlot(req.user.userId);
+      } catch (quotaError) {
+        console.error('[Image] Avatar quota rollback failed:', quotaError);
+      }
+    }
+
     res.status(500).json({ message: 'Error processing image. Ensure it is a valid format.' });
   }
 };
