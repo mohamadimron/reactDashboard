@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const prisma = require('./utils/db');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const logRoutes = require('./routes/logRoutes');
@@ -75,10 +76,63 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+const authorizeAvatarAccess = async (req, res, next) => {
+  try {
+    const normalizedRequestPath = path.posix.normalize(`/${req.path || ''}`);
+    if (!normalizedRequestPath || normalizedRequestPath.includes('..')) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const dbAvatarPath = `/uploads${normalizedRequestPath}`;
+    const avatarOwner = await prisma.user.findFirst({
+      where: { avatar: dbAvatarPath },
+      select: { id: true }
+    });
+
+    if (!avatarOwner) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const canViewAllAvatars = Boolean(req.user?.permissions?.canViewUsers);
+    const canViewMessages = Boolean(req.user?.permissions?.canViewMessages);
+    const isOwnAvatar = avatarOwner.id === req.user?.userId;
+    let isChatParticipantAvatar = false;
+
+    if (!canViewAllAvatars && !isOwnAvatar && canViewMessages) {
+      const relatedConversation = await prisma.message.findFirst({
+        where: {
+          OR: [
+            {
+              senderId: req.user.userId,
+              receiverId: avatarOwner.id
+            },
+            {
+              senderId: avatarOwner.id,
+              receiverId: req.user.userId
+            }
+          ]
+        },
+        select: { id: true }
+      });
+
+      isChatParticipantAvatar = Boolean(relatedConversation);
+    }
+
+    if (!canViewAllAvatars && !isOwnAvatar && !isChatParticipantAvatar) {
+      return res.status(403).json({ message: 'Forbidden: You do not have permission to access this avatar' });
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // 5. Protected Upload Files
 app.use(
   '/api/uploads',
   protect,
+  authorizeAvatarAccess,
   express.static(path.join(process.cwd(), 'uploads'), {
     fallthrough: false,
     setHeaders: (res) => {
