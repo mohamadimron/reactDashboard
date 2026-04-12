@@ -12,7 +12,9 @@ const logRoutes = require('./routes/logRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const roleRoutes = require('./routes/roleRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const systemLogRoutes = require('./routes/systemLogRoutes');
 const { protect } = require('./middlewares/authMiddleware');
+const { systemRequestLogger, logUnhandledBackendError } = require('./utils/systemLogger');
 
 const app = express();
 
@@ -62,6 +64,7 @@ app.use(helmet({
 // 3. Body Parser (Placed after CORS check)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(systemRequestLogger);
 
 // 4. Rate Limiting (High limits to prevent false positives during testing)
 const apiLimiter = rateLimit({
@@ -150,6 +153,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/system-logs', systemLogRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'API Online', secure: true });
@@ -158,6 +162,9 @@ app.get('/', (req, res) => {
 // 7. Global Error Handler (Guaranteed to not leak info but maintain CORS)
 app.use((err, req, res, next) => {
   console.error('[CRITICAL ERROR]', err.stack);
+  logUnhandledBackendError(err, req, err.status || 500).catch((logError) => {
+    console.error('[SystemLog] Backend error log failed:', logError.message);
+  });
 
   if (res.headersSent) {
     return next(err);

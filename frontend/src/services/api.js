@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { emitSessionExpired, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
 import { hasActiveAuthenticatedSession, setAuthenticatedSession } from '../utils/authSessionState';
+import { logFrontendError } from '../utils/frontendLogger';
 
 // Dynamically determine the API URL
 export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -23,6 +24,15 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const code = error.response?.data?.code;
     const hasSession = hasActiveAuthenticatedSession();
+
+    if (!requestConfig.skipSystemErrorLogging && status >= 500) {
+      logFrontendError('api_error', error, {
+        method: requestConfig.method,
+        url: requestConfig.url,
+        status,
+        responseMessage: error.response?.data?.message
+      });
+    }
 
     if (status === 401 && hasSession && (code === 'SESSION_REPLACED' || code === 'SESSION_IDLE_TIMEOUT' || code === 'SESSION_INVALID')) {
       setAuthenticatedSession(false);

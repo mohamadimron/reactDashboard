@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -12,13 +13,31 @@ import AuthLogs from './pages/AuthLogs';
 import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import SystemLogs from './pages/SystemLogs';
 import SessionExpiredModal from './components/SessionExpiredModal';
+import { installFrontendErrorLogging, logFrontendEvent } from './utils/frontendLogger';
+
+const RouteChangeLogger = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    logFrontendEvent('route_change', {
+      pathname: location.pathname,
+      search: location.search
+    }, `Route changed to ${location.pathname}`);
+  }, [location.pathname, location.search]);
+
+  return null;
+};
 
 function App() {
+  useEffect(() => installFrontendErrorLogging(), []);
+
   return (
     <AuthProvider>
       <SessionExpiredModal />
       <BrowserRouter>
+        <RouteChangeLogger />
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
@@ -31,7 +50,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
-              <Route 
+              <Route
                 path="messages" 
                 element={
                   <ProtectedRoute permissionKey="canViewMessages">
@@ -40,7 +59,7 @@ function App() {
                 } 
               />
               
-              <Route 
+              <Route
                 path="users" 
                 element={
                   <ProtectedRoute permissionKey="canViewUsers">
@@ -48,7 +67,7 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
+              <Route
                 path="users/:id" 
                 element={
                   <ProtectedRoute permissionKey="canViewUsers">
@@ -56,7 +75,7 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
+              <Route
                 path="logs" 
                 element={
                   <ProtectedRoute permissionKey="canViewLogs">
@@ -64,13 +83,21 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="settings" 
+              <Route
+                path="system-logs"
+                element={
+                  <ProtectedRoute permissionKey="canViewLogs">
+                    <SystemLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="settings"
                 element={
                   <ProtectedRoute permissionKey="canManageSettings">
                     <Settings />
                   </ProtectedRoute>
-                } 
+                }
               />
             </Route>
           </Route>

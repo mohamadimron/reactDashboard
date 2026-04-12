@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api, { API_URL } from '../services/api';
-import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList, MessageSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList, MessageSquare, Settings, FileClock } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -56,6 +56,7 @@ const DashboardLayout = () => {
     { to: '/dashboard/messages', label: 'Messages', icon: MessageSquare, permission: canViewMessages },
     { to: '/dashboard/users', label: 'User Management', icon: Users, permission: user?.permissions?.canViewUsers },
     { to: '/dashboard/logs', label: 'Auth Logs', icon: ClipboardList, permission: user?.permissions?.canViewLogs },
+    { to: '/dashboard/system-logs', label: 'System Logs', icon: FileClock, permission: user?.permissions?.canViewLogs },
     { to: '/dashboard/settings', label: 'System Settings', icon: Settings, permission: user?.permissions?.canManageSettings },
   ];
 

@@ -86,6 +86,43 @@ const protect = async (req, res, next) => {
   return res.status(401).json({ message: 'Not authorized, no token' });
 };
 
+const optionalProtect = async (req, res, next) => {
+  const token = getAuthTokenFromRequest(req);
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: { role: true }
+    });
+
+    if (user && user.lastSessionId === decoded.sessionId) {
+      req.user = {
+        userId: user.id,
+        role: user.role.name,
+        permissions: {
+          canViewUsers: user.role.canViewUsers,
+          canCreateUsers: user.role.canCreateUsers,
+          canEditUsers: user.role.canEditUsers,
+          canDeleteUsers: user.role.canDeleteUsers,
+          canViewLogs: user.role.canViewLogs,
+          canManageSettings: user.role.canManageSettings,
+          canViewMessages: user.role.canViewMessages,
+          canDeleteMessages: user.role.canDeleteMessages
+        }
+      };
+    }
+  } catch {
+    req.user = null;
+  }
+
+  return next();
+};
+
 // Legacy ADMIN check (for critical system operations)
 const admin = (req, res, next) => {
   if (req.user && req.user.role === 'ADMIN') {
@@ -109,4 +146,4 @@ const checkPermission = (permissionKey) => {
   };
 };
 
-module.exports = { protect, admin, checkPermission };
+module.exports = { protect, optionalProtect, admin, checkPermission };
