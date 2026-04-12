@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api, { API_URL } from '../services/api';
@@ -11,13 +11,9 @@ const DashboardLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadTotal, setUnreadTotal] = useState(0);
   const canViewMessages = Boolean(user?.permissions?.canViewMessages);
+  const displayedUnreadTotal = canViewMessages ? unreadTotal : 0;
 
-  const fetchUnreadCount = async () => {
-    if (!canViewMessages) {
-      setUnreadTotal(0);
-      return;
-    }
-
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await api.get('/messages');
       const data = Array.isArray(res.data) ? res.data : [];
@@ -28,15 +24,14 @@ const DashboardLayout = () => {
         console.error('Failed to fetch unread count', err);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!canViewMessages) {
-      setUnreadTotal(0);
       return;
     }
 
-    fetchUnreadCount();
+    const initialFetch = setTimeout(fetchUnreadCount, 0);
     
     // Listen for manual refresh events (e.g. from Messages page)
     const handleRefresh = () => fetchUnreadCount();
@@ -44,10 +39,11 @@ const DashboardLayout = () => {
     
     const interval = setInterval(fetchUnreadCount, 20000); // Poll every 20s
     return () => {
+      clearTimeout(initialFetch);
       clearInterval(interval);
       window.removeEventListener('refresh-unread', handleRefresh);
     };
-  }, [canViewMessages]);
+  }, [canViewMessages, fetchUnreadCount]);
 
   const handleLogout = async () => {
     await logout();
@@ -81,9 +77,9 @@ const DashboardLayout = () => {
           <link.icon size={20} className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-blue-600'} />
           <span className="font-semibold text-sm">{link.label}</span>
         </div>
-        {link.to === '/dashboard/messages' && unreadTotal > 0 && (
+        {link.to === '/dashboard/messages' && displayedUnreadTotal > 0 && (
           <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-bounce">
-            {unreadTotal > 9 ? '9+' : unreadTotal}
+            {displayedUnreadTotal > 9 ? '9+' : displayedUnreadTotal}
           </span>
         )}
         {isActive && link.to !== '/dashboard/messages' && <ChevronRight size={14} className="text-white opacity-70" />}

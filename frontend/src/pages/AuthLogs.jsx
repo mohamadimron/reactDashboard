@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -26,7 +26,7 @@ const AuthLogs = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState(null);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -46,11 +46,11 @@ const AuthLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, eventType, isSuspicious, page, search, startDate]);
 
   useEffect(() => {
     fetchLogs();
-  }, [page, eventType, isSuspicious, startDate, endDate]);
+  }, [fetchLogs]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

@@ -3,8 +3,11 @@ const {
   SYSTEM_SETTING_KEYS,
   DEFAULT_PUBLIC_REGISTRATION_ROLE,
   DEFAULT_REGISTER_PAGE_ENABLED,
+  REGISTER_MAX_PER_DAY_OPTIONS,
+  DEFAULT_REGISTER_MAX_PER_DAY,
   getSystemSettingsMap,
   parseBooleanSetting,
+  parseRegisterMaxPerDay,
   upsertSystemSetting
 } = require('../utils/systemSettings');
 
@@ -18,7 +21,12 @@ const getSystemSettings = async (req, res) => {
       registerPageEnabled: parseBooleanSetting(
         settings[SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED],
         DEFAULT_REGISTER_PAGE_ENABLED
-      )
+      ),
+      registerMaxPerDay: parseRegisterMaxPerDay(
+        settings[SYSTEM_SETTING_KEYS.REGISTER_MAX_PER_DAY],
+        DEFAULT_REGISTER_MAX_PER_DAY
+      ),
+      registerMaxPerDayOptions: REGISTER_MAX_PER_DAY_OPTIONS
     });
   } catch (error) {
     console.error('[Settings] Fetch Error:', error);
@@ -72,6 +80,19 @@ const updateSetting = async (req, res) => {
     if (key === SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED) {
       const normalizedValue = parseBooleanSetting(value, DEFAULT_REGISTER_PAGE_ENABLED);
       const setting = await upsertSystemSetting(key, normalizedValue ? 'true' : 'false');
+      return res.json(setting);
+    }
+
+    if (key === SYSTEM_SETTING_KEYS.REGISTER_MAX_PER_DAY) {
+      const normalizedValue = Number.parseInt(String(value ?? ''), 10);
+
+      if (!REGISTER_MAX_PER_DAY_OPTIONS.includes(normalizedValue)) {
+        return res.status(400).json({
+          message: `Register max per day must be one of: ${REGISTER_MAX_PER_DAY_OPTIONS.join(', ')}`
+        });
+      }
+
+      const setting = await upsertSystemSetting(key, String(normalizedValue));
       return res.json(setting);
     }
 

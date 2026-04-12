@@ -16,7 +16,7 @@ const RegisterRouteGate = () => {
         if (mounted) {
           setRegisterEnabled(Boolean(res.data?.registerPageEnabled));
         }
-      } catch (error) {
+      } catch {
         if (mounted) {
           setRegisterEnabled(false);
         }

@@ -12,8 +12,10 @@ const Settings = () => {
   const [registrationRoles, setRegistrationRoles] = useState([]);
   const [defaultRegistrationRole, setDefaultRegistrationRole] = useState('');
   const [registerPageEnabled, setRegisterPageEnabled] = useState(true);
+  const [registerMaxPerDay, setRegisterMaxPerDay] = useState(60);
+  const [registerMaxPerDayOptions, setRegisterMaxPerDayOptions] = useState([5, 10, 20, 40, 60]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('roles'); // 'roles' or 'access'
+  const [activeTab, setActiveTab] = useState('roles');
   const [newRoleName, setNewRoleName] = useState('');
   
   // Modal States
@@ -43,6 +45,13 @@ const Settings = () => {
         ''
       );
       setRegisterPageEnabled(Boolean(settingsRes.data?.registerPageEnabled));
+      setRegisterMaxPerDay(Number(settingsRes.data?.registerMaxPerDay) || 60);
+      setRegisterMaxPerDayOptions(
+        Array.isArray(settingsRes.data?.registerMaxPerDayOptions) &&
+        settingsRes.data.registerMaxPerDayOptions.length > 0
+          ? settingsRes.data.registerMaxPerDayOptions
+          : [5, 10, 20, 40, 60]
+      );
     } catch (err) {
       console.error('Failed to fetch settings data', err);
     } finally {
@@ -125,6 +134,21 @@ const Settings = () => {
     }
   };
 
+  const saveRegisterMaxPerDay = async () => {
+    setIsSaving('register-max-per-day');
+    try {
+      await api.put('/settings', {
+        key: 'registerMaxPerDay',
+        value: registerMaxPerDay
+      });
+      showSuccess(`Daily registration limit updated to ${registerMaxPerDay} users.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update daily registration limit');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleTogglePermission = (roleId, field) => {
     setRoles(prev => prev.map(r => {
       if (r.id === roleId) {
@@ -165,7 +189,7 @@ const Settings = () => {
       }
 
       showSuccess(`Access Matrix for ${role.name} updated!`);
-    } catch (err) {
+    } catch {
       alert('Failed to update permissions');
     } finally {
       setIsSaving(false);
@@ -192,7 +216,7 @@ const Settings = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex flex-wrap bg-gray-100 p-1.5 rounded-2xl w-fit">
         <button 
           onClick={() => setActiveTab('roles')}
           className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
@@ -208,6 +232,14 @@ const Settings = () => {
           }`}
         >
           Access Control Matrix
+        </button>
+        <button
+          onClick={() => setActiveTab('registerMax')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+            activeTab === 'registerMax' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          RegisterMax
         </button>
       </div>
 
@@ -462,7 +494,7 @@ const Settings = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'access' ? (
         /* Inline Access Control Matrix */
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
           {roles.map(role => (
@@ -521,6 +553,79 @@ const Settings = () => {
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="animate-in slide-in-from-right-4 duration-500">
+          <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/40">
+              <h3 className="text-xl font-black text-gray-900">RegisterMax</h3>
+              <p className="text-sm text-gray-500 font-medium mt-1 leading-relaxed">
+                Limit how many public accounts can be created from `/register` within one calendar day.
+              </p>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                {registerMaxPerDayOptions.map((option) => {
+                  const selected = Number(registerMaxPerDay) === Number(option);
+
+                  return (
+                    <label
+                      key={option}
+                      className={`rounded-[1.5rem] border-2 px-5 py-5 cursor-pointer transition-all ${
+                        selected
+                          ? 'border-blue-300 bg-blue-50 shadow-sm shadow-blue-100'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="register-max-per-day"
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => setRegisterMaxPerDay(Number(option))}
+                      />
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 shrink-0 ${
+                            selected ? 'border-blue-500' : 'border-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              selected ? 'bg-blue-500' : 'bg-transparent'
+                            }`}
+                          />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-lg font-black text-gray-900">{option}</p>
+                          <p className="text-xs font-medium text-gray-500 mt-1 leading-relaxed">
+                            users per day
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-gray-50 px-4 py-4 sm:px-5">
+                <p className="text-xs font-bold text-gray-500 leading-relaxed">
+                  The backend enforces this limit directly on public registration requests, including direct API calls and concurrent sign-up attempts.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={saveRegisterMaxPerDay}
+                disabled={isSaving === 'register-max-per-day'}
+                className="mt-6 w-full sm:w-auto bg-gray-900 text-white rounded-2xl px-8 py-3.5 font-black text-sm shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSaving === 'register-max-per-day' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                <span>Save RegisterMax</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

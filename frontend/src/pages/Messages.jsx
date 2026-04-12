@@ -11,7 +11,6 @@ const Messages = () => {
   const { user: currentUser } = useAuth();
   // Robust Permission Check: Admin always has access, otherwise check specific permission
   const canDelete = currentUser?.role === 'ADMIN' || currentUser?.permissions?.canDeleteMessages;
-  const canView = currentUser?.role === 'ADMIN' || currentUser?.permissions?.canViewMessages;
   
   const [conversations, setConversations] = useState([]);
   const [activeTab, setActiveTab] = useState(null); // otherUserId
@@ -138,7 +137,7 @@ const Messages = () => {
       setMsgToDelete(null);
       setIsDeleteModalOpen(false);
       fetchConversations();
-    } catch (err) {
+    } catch {
       alert('Action failed');
     }
   };
@@ -154,7 +153,7 @@ const Messages = () => {
       setMessages([]);
       setIsConvDeleteModalOpen(false);
       fetchConversations();
-    } catch (err) {
+    } catch {
       alert('Failed to clear conversation');
     }
   };

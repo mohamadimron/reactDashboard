@@ -4,11 +4,15 @@ const { randomUUID } = require('crypto');
 
 const SYSTEM_SETTING_KEYS = {
   DEFAULT_REGISTRATION_ROLE: 'defaultRegistrationRole',
-  REGISTER_PAGE_ENABLED: 'registerPageEnabled'
+  REGISTER_PAGE_ENABLED: 'registerPageEnabled',
+  REGISTER_MAX_PER_DAY: 'registerMaxPerDay'
 };
 
 const DEFAULT_PUBLIC_REGISTRATION_ROLE = 'USER';
 const DEFAULT_REGISTER_PAGE_ENABLED = true;
+const REGISTER_MAX_PER_DAY_OPTIONS = [5, 10, 20, 40, 60];
+const DEFAULT_REGISTER_MAX_PER_DAY = 60;
+const DEFAULT_REGISTRATION_LIMIT_TIME_ZONE = process.env.REGISTRATION_LIMIT_TIME_ZONE || 'Asia/Jakarta';
 
 let systemSettingColumnsCache = null;
 
@@ -172,19 +176,107 @@ const parseBooleanSetting = (value, fallback = false) => {
   return fallback;
 };
 
+const parseRegisterMaxPerDay = (value, fallback = DEFAULT_REGISTER_MAX_PER_DAY) => {
+  const parsedValue = Number.parseInt(String(value ?? ''), 10);
+  if (REGISTER_MAX_PER_DAY_OPTIONS.includes(parsedValue)) {
+    return parsedValue;
+  }
+
+  return REGISTER_MAX_PER_DAY_OPTIONS.includes(fallback)
+    ? fallback
+    : DEFAULT_REGISTER_MAX_PER_DAY;
+};
+
 const isRegisterPageEnabled = async () => {
   const rawValue = await getSystemSetting(SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED);
   return parseBooleanSetting(rawValue, DEFAULT_REGISTER_PAGE_ENABLED);
+};
+
+const getRegisterMaxPerDay = async () => {
+  const rawValue = await getSystemSetting(SYSTEM_SETTING_KEYS.REGISTER_MAX_PER_DAY);
+  return parseRegisterMaxPerDay(rawValue, DEFAULT_REGISTER_MAX_PER_DAY);
+};
+
+const getTimeZoneDateParts = (date, timeZone) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  });
+
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    if (part.type !== 'literal') {
+      acc[part.type] = Number.parseInt(part.value, 10);
+    }
+    return acc;
+  }, {});
+
+  return {
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: parts.hour,
+    minute: parts.minute,
+    second: parts.second
+  };
+};
+
+const getTimeZoneOffsetMs = (date, timeZone) => {
+  const parts = getTimeZoneDateParts(date, timeZone);
+  const zonedTimeAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+
+  return zonedTimeAsUtc - date.getTime();
+};
+
+const zonedMidnightToUtc = (year, month, day, timeZone) => {
+  const utcMidnight = Date.UTC(year, month - 1, day, 0, 0, 0);
+  let offsetMs = getTimeZoneOffsetMs(new Date(utcMidnight), timeZone);
+  let utcDate = new Date(utcMidnight - offsetMs);
+
+  const adjustedOffsetMs = getTimeZoneOffsetMs(utcDate, timeZone);
+  if (adjustedOffsetMs !== offsetMs) {
+    utcDate = new Date(utcMidnight - adjustedOffsetMs);
+  }
+
+  return utcDate;
+};
+
+const getRegistrationLimitWindow = (now = new Date(), timeZone = DEFAULT_REGISTRATION_LIMIT_TIME_ZONE) => {
+  const parts = getTimeZoneDateParts(now, timeZone);
+  const start = zonedMidnightToUtc(parts.year, parts.month, parts.day, timeZone);
+  const nextDay = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + 1, 0, 0, 0));
+  const nextDayParts = getTimeZoneDateParts(nextDay, 'UTC');
+  const end = zonedMidnightToUtc(nextDayParts.year, nextDayParts.month, nextDayParts.day, timeZone);
+
+  return { start, end, timeZone };
 };
 
 module.exports = {
   SYSTEM_SETTING_KEYS,
   DEFAULT_PUBLIC_REGISTRATION_ROLE,
   DEFAULT_REGISTER_PAGE_ENABLED,
+  REGISTER_MAX_PER_DAY_OPTIONS,
+  DEFAULT_REGISTER_MAX_PER_DAY,
+  DEFAULT_REGISTRATION_LIMIT_TIME_ZONE,
   getSystemSettingsMap,
   getSystemSetting,
   upsertSystemSetting,
   resolveRegistrationRole,
   parseBooleanSetting,
-  isRegisterPageEnabled
+  parseRegisterMaxPerDay,
+  isRegisterPageEnabled,
+  getRegisterMaxPerDay,
+  getRegistrationLimitWindow
 };

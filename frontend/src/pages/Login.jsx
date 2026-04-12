@@ -27,7 +27,7 @@ const Login = () => {
         if (mounted) {
           setRegisterEnabled(Boolean(res.data?.registerPageEnabled));
         }
-      } catch (err) {
+      } catch {
         if (mounted) {
           setRegisterEnabled(false);
         }

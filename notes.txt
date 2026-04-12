@@ -1,0 +1,15 @@
+│                                                                                 │
+│ Visit https://chatgpt.com/codex/settings/usage for up-to-date                   │
+│ information on rate limits and credits                                          │
+│                                                                                 │
+│  Model:                gpt-5.4 (reasoning none, summaries auto)                 │
+│  Directory:            /DATA/Documents/react-app/react-dashboard                │
+│  Permissions:          Custom (workspace-write, on-request)                     │
+│  Agents.md:            <none>                                                   │
+│  Account:              mohamad.imrons@gmail.com (Go)                            │
+│  Collaboration mode:   Default                                                  │
+│  Session:              019d8217-478b-7b93-866e-8017312c2817                     │
+│                                                                                 │
+│  Weekly limit:         [██████████████░░░░░░] 71% left (resets 06:33 on 19 Apr) 
+
+codex resume 019d8217-478b-7b93-866e-8017312c2817

@@ -1,28 +1,18 @@
-import { createContext, useState, useEffect, useContext, useRef } from 'react';
+import { createContext, useState, useEffect, useContext, useRef, useCallback } from 'react';
 import api from '../services/api';
 import { emitSessionExpired, resetSessionExpiryNotice, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
 import { setAuthenticatedSession } from '../utils/authSessionState';
 import { clearAuthSessionHint, hasAuthSessionHint, setAuthSessionHint } from '../utils/authSessionHint';
 
 const AuthContext = createContext();
+const INACTIVITY_LIMIT = 30 * 60 * 1000;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const timerRef = useRef(null);
 
-  const INACTIVITY_LIMIT = 30 * 60 * 1000; 
-
-  const resetInactivityTimer = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (user) {
-      timerRef.current = setTimeout(() => {
-        handleAutoLogout();
-      }, INACTIVITY_LIMIT);
-    }
-  };
-
-  const handleAutoLogout = () => {
+  const handleAutoLogout = useCallback(() => {
     void api.post('/auth/logout', null, {
       skipSessionExpiryHandling: true
     }).catch(() => {});
@@ -33,7 +23,16 @@ export const AuthProvider = ({ children }) => {
     emitSessionExpired({
       reason: SESSION_EXPIRY_REASONS.FRONTEND_INACTIVITY_TIMEOUT
     });
-  };
+  }, []);
+
+  const resetInactivityTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (user) {
+      timerRef.current = setTimeout(() => {
+        handleAutoLogout();
+      }, INACTIVITY_LIMIT);
+    }
+  }, [handleAutoLogout, user]);
 
   useEffect(() => {
     const handleSessionExpired = () => {
@@ -74,7 +73,7 @@ export const AuthProvider = ({ children }) => {
         setAuthenticatedSession(true);
         setAuthSessionHint();
         setUser(response.data);
-      } catch (error) {
+      } catch {
         if (!isMounted) return;
 
         setAuthenticatedSession(false);
@@ -109,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         if (timerRef.current) clearTimeout(timerRef.current);
       };
     }
-  }, [user]);
+  }, [resetInactivityTimer, user]);
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
@@ -154,4 +153,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api, { API_URL } from '../services/api';
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight, Eye, X, Loader2, Filter } from 'lucide-react';
@@ -48,7 +48,7 @@ const Users = () => {
     resolver: zodResolver(userSchema),
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -68,15 +68,15 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activityFilter, page, roleFilter, search, statusFilter]);
 
   const fetchOptions = async () => {
     setIsOptionsLoading(true);
     try {
       // Parallel fetch with individual error catching to be robust
       const [rolesRes, statusesRes] = await Promise.all([
-        api.get('/users/roles').catch(e => ({ data: [] })),
-        api.get('/users/statuses').catch(e => ({ data: [] }))
+        api.get('/users/roles').catch(() => ({ data: [] })),
+        api.get('/users/statuses').catch(() => ({ data: [] }))
       ]);
       
       setRoles(Array.isArray(rolesRes.data) ? rolesRes.data : []);
@@ -96,7 +96,7 @@ const Users = () => {
 
   useEffect(() => {
     fetchData();
-  }, [page, search, roleFilter, statusFilter, activityFilter]);
+  }, [fetchData]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);

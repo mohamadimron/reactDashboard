@@ -15,7 +15,7 @@ const Dashboard = () => {
         const response = await api.get('/users/stats');
         //console.log('Dashboard: Stats received', response.data);
         setStats(response.data);
-      } catch (error) {
+      } catch {
         //console.error('Dashboard: Failed to fetch stats', error);
       } finally {
         setLoading(false);
