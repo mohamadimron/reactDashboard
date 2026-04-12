@@ -13,6 +13,7 @@ import {
   Server,
   X
 } from 'lucide-react';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const DEFAULT_FILTERS = {
   sources: ['BACKEND', 'FRONTEND'],
@@ -58,7 +59,7 @@ const SystemLogs = () => {
       setTotalLogs(response.data.totalLogs || 0);
       setFilters(response.data.filters || DEFAULT_FILTERS);
     } catch (error) {
-      console.error('Failed to fetch system logs', error);
+      logFrontendError('fetch_system_logs_failed', error);
       setLogs([]);
       setTotalPages(1);
       setTotalLogs(0);

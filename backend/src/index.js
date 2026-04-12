@@ -42,7 +42,7 @@ app.use((req, res, next) => {
   
   // These headers must be present on ALL responses, including preflight
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Headers');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Headers, X-Safe-Auth-Response');
   res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24h
 
   // INSTANT RESPONSE FOR PREFLIGHT (OPTIONS)

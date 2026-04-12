@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api, { API_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { logFrontendError } from '../utils/frontendLogger';
 import { 
   Send, Search, User as UserIcon, MessageSquare, 
   MoreVertical, Paperclip, Smile, Shield,
@@ -38,7 +39,7 @@ const Messages = () => {
       const res = await api.get('/messages');
       setConversations(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error('Fetch conversations failed', err);
+      logFrontendError('fetch_conversations_failed', err);
     } finally {
       setLoading(false);
     }
@@ -57,7 +58,7 @@ const Messages = () => {
       
       fetchConversations();
     } catch (err) {
-      console.error('Fetch messages failed', err);
+      logFrontendError('fetch_messages_failed', err);
     } finally {
       setMsgLoading(false);
     }
@@ -71,7 +72,7 @@ const Messages = () => {
           const res = await api.get(`/users/search?query=${recipientInput}`);
           setSuggestions(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-          console.error('Search failed', err);
+          logFrontendError('message_recipient_search_failed', err);
         } finally {
           setIsSearching(false);
         }

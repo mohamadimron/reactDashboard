@@ -6,6 +6,7 @@ import {
   Filter, Calendar, ChevronLeft, ChevronRight, Monitor, 
   Smartphone, Tablet, Cpu, AlertTriangle, Eye, X, Trash2, User as UserIcon
 } from 'lucide-react';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const AuthLogs = () => {
   const { user: authUser } = useAuth();
@@ -42,7 +43,7 @@ const AuthLogs = () => {
       setLogs(response.data.logs);
       setTotalPages(response.data.totalPages);
     } catch (error) {
-      console.error('Failed to fetch auth logs', error);
+      logFrontendError('fetch_auth_logs_failed', error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ const AuthLogs = () => {
       fetchLogs();
       closeDeleteModal();
     } catch (error) {
-      console.error('Failed to delete auth log', error);
+      logFrontendError('delete_auth_log_failed', error);
       alert(error.response?.data?.message || 'Failed to delete log');
     }
   };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { logFrontendError } from '../utils/frontendLogger';
 import { 
   Settings as SettingsIcon, Trash2,
   CheckCircle2, XCircle, Save, Loader2, Lock, ShieldCheck
@@ -53,7 +54,7 @@ const Settings = () => {
           : [5, 10, 20, 40, 60]
       );
     } catch (err) {
-      console.error('Failed to fetch settings data', err);
+      logFrontendError('fetch_settings_data_failed', err);
     } finally {
       setLoading(false);
     }

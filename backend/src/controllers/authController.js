@@ -14,6 +14,7 @@ const { setAuthCookie, clearAuthCookie } = require('../utils/authCookie');
 const z = require('zod');
 
 const REGISTER_DAILY_LIMIT_LOCK_ID = 2026041201;
+const SAFE_AUTH_RESPONSE_HEADER = 'x-safe-auth-response';
 
 // Validation schema
 const registerSchema = z.object({
@@ -27,11 +28,23 @@ const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+const sendExpectedAuthError = (req, res, statusCode, payload) => {
+  if (req.headers[SAFE_AUTH_RESPONSE_HEADER] === 'true') {
+    return res.status(200).json({
+      ok: false,
+      statusCode,
+      ...payload
+    });
+  }
+
+  return res.status(statusCode).json(payload);
+};
+
 const register = async (req, res) => {
   try {
     const parsedData = registerSchema.safeParse(req.body);
     if (!parsedData.success) {
-      return res.status(400).json({ errors: parsedData.error.format() });
+      return sendExpectedAuthError(req, res, 400, { errors: parsedData.error.format() });
     }
 
     const { name, email: rawEmail, password } = parsedData.data;
@@ -146,7 +159,7 @@ const register = async (req, res) => {
     });
   } catch (error) {
     if (error.statusCode) {
-      return res.status(error.statusCode).json({ message: error.message });
+      return sendExpectedAuthError(req, res, error.statusCode, { message: error.message });
     }
 
     console.error('[Auth] Register Error:', error);
@@ -158,7 +171,7 @@ const login = async (req, res) => {
   try {
     const parsedData = loginSchema.safeParse(req.body);
     if (!parsedData.success) {
-      return res.status(400).json({ errors: parsedData.error.format() });
+      return sendExpectedAuthError(req, res, 400, { errors: parsedData.error.format() });
     }
 
     const { email: rawEmail, password } = parsedData.data;
@@ -171,20 +184,20 @@ const login = async (req, res) => {
 
     if (!user) {
       logAuthEvent({ usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: 'USER_NOT_FOUND', req });
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return sendExpectedAuthError(req, res, 401, { message: 'Invalid email or password' });
     }
 
     // Dynamic Status Check
     if (user.status.name !== 'ACTIVE') {
       const reason = user.status.name === 'SUSPEND' ? 'ACCOUNT_SUSPENDED' : 'ACCOUNT_INACTIVE';
       logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: reason, req });
-      return res.status(403).json({ message: `Your account status is ${user.status.name}. Please contact administrator.` });
+      return sendExpectedAuthError(req, res, 403, { message: `Your account status is ${user.status.name}. Please contact administrator.` });
     }
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       logAuthEvent({ userId: user.id, usernameInput: email, eventType: 'LOGIN_FAILED', failureReason: 'WRONG_PASSWORD', req });
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return sendExpectedAuthError(req, res, 401, { message: 'Invalid email or password' });
     }
 
     const sessionId = require('crypto').randomUUID();

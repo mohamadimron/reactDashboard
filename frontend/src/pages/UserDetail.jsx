@@ -7,6 +7,7 @@ import {
   Search, Maximize2, X, Monitor, Smartphone, Tablet, Cpu,
   AlertCircle
 } from 'lucide-react';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const UserDetail = () => {
   const { id } = useParams();
@@ -21,7 +22,7 @@ const UserDetail = () => {
         const response = await api.get(`/users/${id}`);
         setUserData(response.data);
       } catch (error) {
-        console.error('Failed to fetch user details', error);
+        logFrontendError('fetch_user_detail_failed', error);
       } finally {
         setLoading(false);
       }

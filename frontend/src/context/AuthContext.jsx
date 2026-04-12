@@ -3,9 +3,27 @@ import api from '../services/api';
 import { emitSessionExpired, resetSessionExpiryNotice, SESSION_EXPIRY_REASONS } from '../utils/sessionExpiry';
 import { setAuthenticatedSession } from '../utils/authSessionState';
 import { clearAuthSessionHint, hasAuthSessionHint, setAuthSessionHint } from '../utils/authSessionHint';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const AuthContext = createContext();
 const INACTIVITY_LIMIT = 30 * 60 * 1000;
+
+const SAFE_AUTH_HEADERS = {
+  'X-Safe-Auth-Response': 'true'
+};
+
+const assertSuccessfulAuthResponse = (response) => {
+  if (response.data?.ok === false) {
+    const error = new Error(response.data.message || 'Authentication request failed');
+    error.response = {
+      status: response.data.statusCode || 400,
+      data: response.data
+    };
+    throw error;
+  }
+
+  return response.data;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -111,19 +129,27 @@ export const AuthProvider = ({ children }) => {
   }, [resetInactivityTimer, user]);
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/auth/login', { email, password }, {
+      headers: SAFE_AUTH_HEADERS,
+      skipSystemErrorLogging: true
+    });
+    const userData = assertSuccessfulAuthResponse(response);
     resetSessionExpiryNotice();
     setAuthenticatedSession(true);
     setAuthSessionHint();
-    setUser(response.data);
+    setUser(userData);
   };
 
   const register = async (name, email, password) => {
-    const response = await api.post('/auth/register', { name, email, password });
+    const response = await api.post('/auth/register', { name, email, password }, {
+      headers: SAFE_AUTH_HEADERS,
+      skipSystemErrorLogging: true
+    });
+    const userData = assertSuccessfulAuthResponse(response);
     resetSessionExpiryNotice();
     setAuthenticatedSession(true);
     setAuthSessionHint();
-    setUser(response.data);
+    setUser(userData);
   };
 
   const logout = async () => {
@@ -132,7 +158,7 @@ export const AuthProvider = ({ children }) => {
         skipSessionExpiryHandling: true
       });
     } catch (error) {
-      console.error('Logout request failed:', error);
+      logFrontendError('logout_request_failed', error);
     }
 
     setAuthenticatedSession(false);

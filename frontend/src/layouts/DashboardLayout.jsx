@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api, { API_URL } from '../services/api';
 import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, User, ClipboardList, MessageSquare, Settings, FileClock } from 'lucide-react';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -21,7 +22,7 @@ const DashboardLayout = () => {
       setUnreadTotal(total);
     } catch (err) {
       if (err.response?.status !== 403) {
-        console.error('Failed to fetch unread count', err);
+        logFrontendError('fetch_unread_count_failed', err);
       }
     }
   }, []);

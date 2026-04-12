@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { logFrontendError } from '../utils/frontendLogger';
 
 const userSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -63,7 +64,7 @@ const Users = () => {
       setUsers(Array.isArray(response.data.users) ? response.data.users : []);
       setTotalPages(response.data.totalPages || 1);
     } catch (error) {
-      console.error('Failed to fetch users', error);
+      logFrontendError('fetch_users_failed', error);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ const Users = () => {
       setRoles(Array.isArray(rolesRes.data) ? rolesRes.data : []);
       setStatuses(Array.isArray(statusesRes.data) ? statusesRes.data : []);
     } catch (error) {
-      console.error('Failed to fetch options', error);
+      logFrontendError('fetch_user_options_failed', error);
       setRoles([]);
       setStatuses([]);
     } finally {
@@ -159,7 +160,7 @@ const Users = () => {
       closeModal();
       fetchData();
     } catch (error) {
-      console.error('Save error:', error);
+      logFrontendError('save_user_failed', error);
       alert(error.response?.data?.message || 'Failed to process request');
     }
   };
