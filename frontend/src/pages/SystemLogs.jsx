@@ -15,7 +15,10 @@ import {
   Trash2,
   X,
   ShieldAlert,
-  Info
+  Info,
+  Activity,
+  Globe,
+  Terminal
 } from 'lucide-react';
 import { logFrontendError } from '../utils/frontendLogger';
 
@@ -56,7 +59,7 @@ const SystemLogs = () => {
     try {
       const params = new URLSearchParams({
         page,
-        limit: 20,
+        limit: 15,
         search,
         source,
         type,
@@ -74,8 +77,6 @@ const SystemLogs = () => {
     } catch (error) {
       logFrontendError('fetch_system_logs_failed', error);
       setLogs([]);
-      setTotalPages(1);
-      setTotalLogs(0);
     } finally {
       setLoading(false);
     }
@@ -155,7 +156,7 @@ const SystemLogs = () => {
         : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 
     return (
-      <span className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${style}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${style}`}>
         {value}
       </span>
     );
@@ -163,89 +164,94 @@ const SystemLogs = () => {
 
   const getTypeBadge = (value) => {
     const style = value === 'ERROR'
-      ? 'bg-red-600 text-white shadow-sm shadow-red-200'
-      : 'bg-blue-600 text-white shadow-sm shadow-blue-200';
+      ? 'bg-red-600 text-white shadow-sm'
+      : 'bg-blue-600 text-white shadow-sm';
 
     return (
-      <span className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${style}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${style}`}>
         {value}
       </span>
     );
   };
 
   const renderMetadata = (value) => {
-    if (!value) return 'No metadata';
-    return JSON.stringify(value, null, 2);
+    if (!value) return 'No metadata analysis available';
+    if (typeof value !== 'object') return String(value);
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return 'Error parsing metadata';
+    }
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Logs</h2>
-          <p className="text-sm text-gray-500 font-medium">Monitor application events and errors across frontend and backend</p>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Event Logs</h2>
+          <p className="text-sm text-gray-500 font-medium">Monitor application infrastructure, events, and error diagnostics</p>
         </div>
         <div className="flex items-center gap-3">
           {isAdmin && (
             <button
               onClick={() => setIsClearModalOpen(true)}
               disabled={loading || isDeleting || totalLogs === 0}
-              className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-600 border border-red-100 shadow-sm hover:bg-red-100 transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-red-600 border border-red-100 shadow-sm hover:bg-red-100 transition-all disabled:opacity-50"
             >
               <Trash2 size={14} />
               Clear All
             </button>
           )}
-          <div className="inline-flex items-center rounded-2xl bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-200 shadow-sm w-fit">
-            {loading ? 'Syncing...' : `${totalLogs} Logs`}
+          <div className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-200 shadow-sm w-fit">
+            <Database size={14} className="text-blue-600" />
+            {loading ? 'Syncing...' : `${totalLogs} Entries`}
           </div>
         </div>
       </div>
 
-      {/* Filters Card */}
+      {/* Filters Card - Styled like AuthLogs */}
       <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center space-x-2 text-gray-900 font-black text-sm">
-            <Filter size={18} className="text-blue-600" />
-            <span>Advanced Filters</span>
-          </div>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-xs font-black text-gray-400 hover:text-gray-700 uppercase tracking-widest"
-          >
-            Reset
-          </button>
+        <div className="flex items-center space-x-2 text-gray-900 font-black text-sm mb-2">
+          <Filter size={18} className="text-blue-600" />
+          <span>Advanced Filters</span>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-          <div className="relative md:col-span-2">
+        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="relative xl:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Message, action, path, user, IP, metadata"
+              placeholder="Search message, action, user, IP..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
 
-          <select value={source} onChange={(e) => setSource(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+          <select value={source} onChange={(e) => setSource(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
             <option value="">All Sources</option>
             {filters.sources.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
 
-          <select value={type} onChange={(e) => setType(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+          <select value={type} onChange={(e) => setType(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
             <option value="">All Types</option>
             {filters.types.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
 
-          <select value={level} onChange={(e) => setLevel(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+          <select value={level} onChange={(e) => setLevel(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
             <option value="">All Levels</option>
             {filters.levels.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
 
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+          <button type="submit" className="bg-blue-600 text-white rounded-xl py-2.5 px-5 text-sm font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+            <Search size={16} />
+            Apply
+          </button>
+          
+          <div className="xl:hidden"></div> {/* Spacer for alignment if needed */}
+
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border-none rounded-xl py-2.5 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer xl:col-span-1">
             <option value="">All Categories</option>
             {filters.categories.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
@@ -255,136 +261,141 @@ const SystemLogs = () => {
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-2 text-xs font-bold focus:ring-2 focus:ring-blue-500" />
             </div>
-            <span className="text-gray-400 text-xs font-bold">TO</span>
+            <span className="text-gray-400 text-xs font-bold uppercase">To</span>
             <div className="relative flex-1">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-2 text-xs font-bold focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
-
-          <button type="submit" className="bg-blue-600 text-white rounded-xl py-2.5 px-5 text-sm font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-            Apply Filters
+          
+          <button type="button" onClick={resetFilters} className="text-xs font-black text-gray-400 hover:text-gray-700 uppercase tracking-widest xl:col-span-1 text-center">
+            Reset All
           </button>
         </form>
       </div>
 
-      {/* Table Card */}
+      {/* Table Card - Styled like AuthLogs */}
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Timestamp</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Source</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Category</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Message</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Context</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Source & Category</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Event Type</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Action & Message</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Connection</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading && logs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-3">
                       <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-sm font-bold text-gray-400">Synchronizing system logs...</p>
+                      <p className="text-sm font-bold text-gray-400">Syncing system audit...</p>
                     </div>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No system logs found matching criteria</p>
+                  <td colSpan="6" className="px-6 py-12 text-center">
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching system events found</p>
                   </td>
                 </tr>
-              ) : logs.map((log) => (
-                <tr key={log.id} className={`group hover:bg-gray-50/80 transition-colors ${log.type === 'ERROR' ? 'bg-red-50/30' : ''}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-900">{new Date(log.createdAt).toLocaleDateString()}</span>
-                      <span className="text-[10px] font-black text-gray-400 uppercase">{new Date(log.createdAt).toLocaleTimeString()}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
-                        {log.source === 'BACKEND' ? <Server size={16} /> : <MonitorCog size={16} />}
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className={`group hover:bg-gray-50/80 transition-colors ${log.type === 'ERROR' ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900">{new Date(log.createdAt).toLocaleDateString()}</span>
+                        <span className="text-[10px] font-black text-gray-400 uppercase">{new Date(log.createdAt).toLocaleTimeString()}</span>
                       </div>
-                      <span className="text-xs font-black text-gray-700">{log.source}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1">
-                      {getTypeBadge(log.type)}
-                      {getLevelBadge(log.level)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-xs font-black text-gray-900">{log.category}</span>
-                    <p className="text-[10px] font-bold text-gray-400 mt-1 max-w-[180px] truncate">{log.action}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="max-w-[360px]">
-                      <p className="text-sm font-bold text-gray-900 line-clamp-2">{log.message}</p>
-                      {log.stack && (
-                        <span className="inline-flex items-center mt-2 rounded-lg bg-red-100 px-2 py-0.5 text-[9px] font-black uppercase text-red-700">
-                          <AlertTriangle size={10} className="mr-1" /> Stack Trace
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col text-xs font-bold text-gray-500">
-                      <span>{log.method || '-'} {log.statusCode || ''}</span>
-                      <span className="max-w-[220px] truncate" title={log.path || ''}>{log.path || '-'}</span>
-                      <span className="font-mono text-[10px] text-gray-400">{log.ipAddress || 'unknown'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end space-x-2">
-                      <button 
-                        onClick={() => openDetail(log)} 
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
-                        title="View Details"
-                      >
-                        <Eye size={18} />
-                      </button>
-                      {isAdmin && (
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2 text-gray-700">
+                        <div className={`p-1.5 rounded-lg text-gray-500 ${log.source === 'BACKEND' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {log.source === 'BACKEND' ? <Server size={14} /> : <MonitorCog size={14} />}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-gray-900">{log.source}</span>
+                          <span className="text-[10px] font-bold text-blue-600 uppercase">{log.category}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-1">
+                        {getTypeBadge(log.type)}
+                        {getLevelBadge(log.level)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col max-w-[300px]">
+                        <span className="text-[10px] font-black text-gray-400 uppercase truncate" title={log.action}>{log.action}</span>
+                        <p className="text-sm font-bold text-gray-900 line-clamp-1" title={log.message}>{log.message}</p>
+                        {log.stack && (
+                          <span className="inline-flex items-center mt-1 text-[9px] font-black text-red-500 uppercase">
+                            <AlertTriangle size={10} className="mr-1" /> Stack Trace Available
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-mono font-bold text-gray-700">{log.ipAddress || '0.0.0.0'}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase border ${log.statusCode >= 400 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-green-50 border-green-100 text-green-600'}`}>
+                            {log.method || 'GET'} {log.statusCode || '200'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 truncate max-w-[180px]" title={log.path}>{log.path || '/'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end space-x-2">
                         <button 
-                          onClick={() => openDeleteModal(log)} 
-                          disabled={isDeleting}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100 disabled:opacity-30"
-                          title="Delete Log"
+                          onClick={() => openDetail(log)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
+                          title="View Details"
                         >
-                          <Trash2 size={18} />
+                          <Eye size={18} />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {isAdmin && (
+                          <button 
+                            onClick={() => openDeleteModal(log)}
+                            disabled={isDeleting}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100 disabled:opacity-30"
+                            title="Delete Log"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        <div className="px-6 py-4 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
+        <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
           <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
             Page {page} of {totalPages}
           </p>
           <div className="flex items-center space-x-2">
             <button
-              disabled={page <= 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
               className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
             >
               <ChevronLeft size={20} />
             </button>
             <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || totalPages === 0}
               className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
             >
               <ChevronRight size={20} />
@@ -393,11 +404,12 @@ const SystemLogs = () => {
         </div>
       </div>
 
-      {/* Log Detail Modal */}
+      {/* Log Detail Modal - EXACT AuthLogs Style */}
       {isDetailOpen && selectedLog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsDetailOpen(false)}></div>
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsDetailOpen(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 animate-in zoom-in duration-300">
+            {/* Modal Header */}
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
               <div className="flex justify-between items-start relative z-10">
@@ -406,7 +418,7 @@ const SystemLogs = () => {
                     <Database size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight">System Log Detail</h3>
+                    <h3 className="text-2xl font-black tracking-tight flex items-center gap-2">System Audit Detail</h3>
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Ref ID: {selectedLog.id.substring(0, 13)}...</p>
                   </div>
                 </div>
@@ -417,47 +429,55 @@ const SystemLogs = () => {
             </div>
 
             <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <DetailItem label="Source" value={selectedLog.source} />
-                <DetailItem label="Type" value={selectedLog.type} />
-                <DetailItem label="Level" value={selectedLog.level} />
-                <DetailItem label="Category" value={selectedLog.category} />
-                <DetailItem label="Status Code" value={selectedLog.statusCode || 'N/A'} />
-                <DetailItem label="Method" value={selectedLog.method || 'N/A'} />
-              </div>
-
-              <div className="space-y-4">
-                <DetailItem label="Action" value={selectedLog.action} wide />
-                <DetailItem label="Message" value={selectedLog.message} wide />
-                <DetailItem label="Path" value={selectedLog.path || 'N/A'} wide />
-                <DetailItem label="User Agent" value={selectedLog.userAgent || 'N/A'} wide />
-              </div>
-
+              {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <DetailItem label="User ID" value={selectedLog.userId || 'System/Guest'} />
-                <DetailItem label="User Role" value={selectedLog.userRole || 'N/A'} />
-                <DetailItem label="IP Address" value={selectedLog.ipAddress || 'Unknown'} />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Info size={12} className="text-blue-500" /> Metadata Analysis
-                </label>
-                <pre className="bg-gray-50 text-gray-700 rounded-2xl p-5 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-100 shadow-inner">
-                  {renderMetadata(selectedLog.metadata)}
-                </pre>
-              </div>
-
-              {selectedLog.stack && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <AlertTriangle size={12} /> Execution Stack Trace
-                  </label>
-                  <pre className="bg-red-50 text-red-700 rounded-2xl p-5 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-red-100 shadow-inner leading-relaxed">
-                    {selectedLog.stack}
-                  </pre>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Infrastructure Source</span>
+                  <div className="mt-1 flex gap-2">{getTypeBadge(selectedLog.type)} {getLevelBadge(selectedLog.level)}</div>
                 </div>
-              )}
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                  <span className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Component Category</span>
+                  <p className="text-sm font-black text-blue-600 mt-1 uppercase">{selectedLog.category}</p>
+                </div>
+              </div>
+
+              {/* Event Details */}
+              <div className="space-y-4">
+                <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Terminal size={14} className="text-blue-600" /> Event Diagnostics
+                </h4>
+                <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-50 shadow-sm overflow-hidden">
+                  <DetailRow label="System Action" value={selectedLog.action} />
+                  <DetailRow label="Message" value={selectedLog.message} />
+                  <DetailRow label="Resource Path" value={selectedLog.path || '/'} isMono />
+                  <DetailRow label="Network Origin" value={selectedLog.ipAddress || 'Internal'} isMono />
+                  <DetailRow label="Executor ID" value={selectedLog.userId || 'Anonymous'} />
+                  <DetailRow label="Event Timestamp" value={new Date(selectedLog.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' })} />
+                </div>
+              </div>
+
+              {/* Payloads */}
+              <div className="space-y-4">
+                <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Globe size={14} className="text-blue-600" /> Technical Context
+                </h4>
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-4">
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-inner">
+                    <span className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Metadata Analysis</span>
+                    <pre className="text-[10px] font-mono text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      {renderMetadata(selectedLog.metadata)}
+                    </pre>
+                  </div>
+                  {selectedLog.stack && (
+                    <div className="bg-red-50/50 p-4 rounded-xl border border-red-100">
+                      <span className="block text-[9px] font-black text-red-400 uppercase tracking-widest mb-2">Stack Diagnosis</span>
+                      <pre className="text-[10px] font-mono text-red-600 leading-relaxed whitespace-pre-wrap">
+                        {selectedLog.stack}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="bg-gray-50 p-6 flex justify-center border-t border-gray-100">
@@ -465,28 +485,28 @@ const SystemLogs = () => {
                 onClick={() => setIsDetailOpen(false)}
                 className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
               >
-                Dismiss Review
+                Dismiss Audit Review
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Modal - Theme matched with AuthLogs */}
+      {/* Delete Confirmation Modal - EXACT AuthLogs Style */}
       {isDeleteModalOpen && logToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200" onClick={closeDeleteModal}></div>
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={closeDeleteModal}></div>
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-600 mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-2">Delete System Log?</h3>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Delete Event Entry?</h3>
               <p className="text-gray-500 font-medium leading-relaxed">
-                Are you sure you want to delete this log entry? This action is permanent and cannot be undone.
+                This will permanently erase this infrastructure log from the audit vault. This action is irreversible.
               </p>
               <div className="mt-4 p-3 bg-gray-50 rounded-2xl text-xs font-mono text-gray-400 border border-gray-100 overflow-hidden">
-                <span className="block truncate">Log ID: {logToDelete.id}</span>
+                <span className="block truncate">Ref: {logToDelete.id}</span>
               </div>
             </div>
             
@@ -496,7 +516,7 @@ const SystemLogs = () => {
                 disabled={isDeleting}
                 className="w-full flex-1 bg-red-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95 sm:order-2 disabled:opacity-50"
               >
-                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                {isDeleting ? 'Deleting...' : 'Confirm Erase'}
               </button>
               <button
                 onClick={closeDeleteModal}
@@ -519,12 +539,12 @@ const SystemLogs = () => {
               <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-red-100">
                 <ShieldAlert size={40} />
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-2">Mass Purge Logs?</h3>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Purge Entire Vault?</h3>
               <p className="text-gray-500 font-medium leading-relaxed">
-                CRITICAL ACTION: This will permanently delete ALL system logs from the database. This operation is irreversible.
+                CRITICAL: This will wipe ALL system events from the database. Infrastructure history will be lost.
               </p>
               <div className="mt-4 p-3 bg-red-50 rounded-2xl text-xs font-black text-red-600 border border-red-100">
-                Total Logs to Clear: {totalLogs}
+                Total Logs Affected: {totalLogs}
               </div>
             </div>
             
@@ -534,7 +554,7 @@ const SystemLogs = () => {
                 disabled={isDeleting}
                 className="w-full flex-1 bg-red-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95 sm:order-2 disabled:opacity-50"
               >
-                {isDeleting ? 'Purging...' : 'Confirm Purge All'}
+                {isDeleting ? 'Purging...' : 'Confirm Purge'}
               </button>
               <button
                 onClick={() => setIsClearModalOpen(false)}
@@ -551,10 +571,12 @@ const SystemLogs = () => {
   );
 };
 
-const DetailItem = ({ label, value, wide = false }) => (
-  <div className={wide ? 'col-span-full' : ''}>
-    <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</span>
-    <p className="text-sm font-bold text-gray-900 break-words leading-relaxed">{value}</p>
+const DetailRow = ({ label, value, isMono = false }) => (
+  <div className="p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-1">
+    <span className="text-xs font-bold text-gray-500">{label}</span>
+    <span className={`text-sm font-black text-gray-900 text-left md:text-right max-w-md break-words ${isMono ? 'font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100' : ''}`}>
+      {value || 'N/A'}
+    </span>
   </div>
 );
 
