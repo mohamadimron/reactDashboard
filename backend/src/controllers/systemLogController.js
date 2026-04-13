@@ -174,7 +174,35 @@ const createFrontendLog = async (req, res) => {
   }
 };
 
+const deleteSystemLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM "SystemLog" WHERE "id" = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Log entry not found' });
+    }
+
+    res.json({ message: 'Log entry deleted successfully' });
+  } catch (error) {
+    console.error('[SystemLogs] Delete Error:', error);
+    res.status(500).json({ message: 'Server Error while deleting system log' });
+  }
+};
+
+const clearSystemLogs = async (req, res) => {
+  try {
+    await pool.query('TRUNCATE TABLE "SystemLog"');
+    res.json({ message: 'All system logs cleared successfully' });
+  } catch (error) {
+    console.error('[SystemLogs] Clear Error:', error);
+    res.status(500).json({ message: 'Server Error while clearing system logs' });
+  }
+};
+
 module.exports = {
   getSystemLogs,
-  createFrontendLog
+  createFrontendLog,
+  deleteSystemLog,
+  clearSystemLogs
 };

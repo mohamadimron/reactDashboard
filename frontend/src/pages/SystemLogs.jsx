@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   AlertTriangle,
   Calendar,
@@ -11,7 +12,10 @@ import {
   MonitorCog,
   Search,
   Server,
-  X
+  Trash2,
+  X,
+  ShieldAlert,
+  Info
 } from 'lucide-react';
 import { logFrontendError } from '../utils/frontendLogger';
 
@@ -23,6 +27,9 @@ const DEFAULT_FILTERS = {
 };
 
 const SystemLogs = () => {
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'ADMIN';
+
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
@@ -36,7 +43,13 @@ const SystemLogs = () => {
   const [category, setCategory] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
   const [selectedLog, setSelectedLog] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState(null);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -89,6 +102,51 @@ const SystemLogs = () => {
     setPage(1);
   };
 
+  const openDetail = (log) => {
+    setSelectedLog(log);
+    setIsDetailOpen(true);
+  };
+
+  const openDeleteModal = (log) => {
+    setLogToDelete(log);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setLogToDelete(null);
+  };
+
+  const handleDelete = async () => {
+    if (!logToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/system-logs/${logToDelete.id}`);
+      fetchLogs();
+      closeDeleteModal();
+    } catch (error) {
+      logFrontendError('delete_system_log_failed', error);
+      alert(error.response?.data?.message || 'Failed to delete log');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    setIsDeleting(true);
+    try {
+      await api.delete('/system-logs');
+      setPage(1);
+      fetchLogs();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      logFrontendError('clear_system_logs_failed', error);
+      alert(error.response?.data?.message || 'Failed to clear logs');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getLevelBadge = (value) => {
     const style = value === 'ERROR'
       ? 'bg-red-100 text-red-700 border-red-200'
@@ -127,11 +185,24 @@ const SystemLogs = () => {
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Logs</h2>
           <p className="text-sm text-gray-500 font-medium">Monitor application events and errors across frontend and backend</p>
         </div>
-        <div className="inline-flex items-center rounded-2xl bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-200 shadow-sm w-fit">
-          {loading ? 'Syncing...' : `${totalLogs} Logs`}
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => setIsClearModalOpen(true)}
+              disabled={loading || isDeleting || totalLogs === 0}
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-600 border border-red-100 shadow-sm hover:bg-red-100 transition-all disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              Clear All
+            </button>
+          )}
+          <div className="inline-flex items-center rounded-2xl bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-200 shadow-sm w-fit">
+            {loading ? 'Syncing...' : `${totalLogs} Logs`}
+          </div>
         </div>
       </div>
 
+      {/* Filters Card */}
       <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center space-x-2 text-gray-900 font-black text-sm">
@@ -197,6 +268,7 @@ const SystemLogs = () => {
         </form>
       </div>
 
+      {/* Table Card */}
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -212,7 +284,7 @@ const SystemLogs = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {loading ? (
+              {loading && logs.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-3">
@@ -271,9 +343,25 @@ const SystemLogs = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button onClick={() => setSelectedLog(log)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex justify-end space-x-2">
+                      <button 
+                        onClick={() => openDetail(log)} 
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-blue-100"
+                        title="View Details"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      {isAdmin && (
+                        <button 
+                          onClick={() => openDeleteModal(log)} 
+                          disabled={isDeleting}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-red-100 disabled:opacity-30"
+                          title="Delete Log"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -281,72 +369,180 @@ const SystemLogs = () => {
           </table>
         </div>
 
+        {/* Pagination */}
         <div className="px-6 py-4 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            className="p-2 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-all"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            className="p-2 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-all"
-          >
-            <ChevronRight size={20} />
-          </button>
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
+            Page {page} of {totalPages}
+          </p>
+          <div className="flex items-center space-x-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {selectedLog && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setSelectedLog(null)}></div>
-          <div className="relative bg-white rounded-[3rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
-            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                  <Database size={24} />
+      {/* Log Detail Modal */}
+      {isDetailOpen && selectedLog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsDetailOpen(false)}></div>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 animate-in zoom-in duration-300">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                    <Database size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight">System Log Detail</h3>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Ref ID: {selectedLog.id.substring(0, 13)}...</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-black text-gray-900">System Log Detail</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{selectedLog.id}</p>
-                </div>
+                <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                  <X size={20} />
+                </button>
               </div>
-              <button onClick={() => setSelectedLog(null)} className="p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100">
-                <X size={22} />
-              </button>
             </div>
 
-            <div className="p-8 overflow-y-auto max-h-[calc(90vh-112px)] space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Detail label="Source" value={selectedLog.source} />
-                <Detail label="Type" value={selectedLog.type} />
-                <Detail label="Level" value={selectedLog.level} />
-                <Detail label="Category" value={selectedLog.category} />
-                <Detail label="Action" value={selectedLog.action} />
-                <Detail label="Status" value={selectedLog.statusCode || '-'} />
-                <Detail label="User ID" value={selectedLog.userId || '-'} />
-                <Detail label="User Role" value={selectedLog.userRole || '-'} />
-                <Detail label="IP Address" value={selectedLog.ipAddress || '-'} />
+            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <DetailItem label="Source" value={selectedLog.source} />
+                <DetailItem label="Type" value={selectedLog.type} />
+                <DetailItem label="Level" value={selectedLog.level} />
+                <DetailItem label="Category" value={selectedLog.category} />
+                <DetailItem label="Status Code" value={selectedLog.statusCode || 'N/A'} />
+                <DetailItem label="Method" value={selectedLog.method || 'N/A'} />
               </div>
 
-              <Detail label="Message" value={selectedLog.message} wide />
-              <Detail label="Path" value={selectedLog.path || '-'} wide />
-              <Detail label="User Agent" value={selectedLog.userAgent || '-'} wide />
+              <div className="space-y-4">
+                <DetailItem label="Action" value={selectedLog.action} wide />
+                <DetailItem label="Message" value={selectedLog.message} wide />
+                <DetailItem label="Path" value={selectedLog.path || 'N/A'} wide />
+                <DetailItem label="User Agent" value={selectedLog.userAgent || 'N/A'} wide />
+              </div>
 
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Metadata</p>
-                <pre className="bg-gray-950 text-gray-100 rounded-2xl p-4 text-xs overflow-x-auto whitespace-pre-wrap">{renderMetadata(selectedLog.metadata)}</pre>
+              <div className="grid grid-cols-2 gap-4">
+                <DetailItem label="User ID" value={selectedLog.userId || 'System/Guest'} />
+                <DetailItem label="User Role" value={selectedLog.userRole || 'N/A'} />
+                <DetailItem label="IP Address" value={selectedLog.ipAddress || 'Unknown'} />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Info size={12} className="text-blue-500" /> Metadata Analysis
+                </label>
+                <pre className="bg-gray-50 text-gray-700 rounded-2xl p-5 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-gray-100 shadow-inner">
+                  {renderMetadata(selectedLog.metadata)}
+                </pre>
               </div>
 
               {selectedLog.stack && (
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Stack Trace</p>
-                  <pre className="bg-red-950 text-red-50 rounded-2xl p-4 text-xs overflow-x-auto whitespace-pre-wrap">{selectedLog.stack}</pre>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <AlertTriangle size={12} /> Execution Stack Trace
+                  </label>
+                  <pre className="bg-red-50 text-red-700 rounded-2xl p-5 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-red-100 shadow-inner leading-relaxed">
+                    {selectedLog.stack}
+                  </pre>
                 </div>
               )}
+            </div>
+
+            <div className="bg-gray-50 p-6 flex justify-center border-t border-gray-100">
+              <button 
+                onClick={() => setIsDetailOpen(false)}
+                className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
+              >
+                Dismiss Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal - Theme matched with AuthLogs */}
+      {isDeleteModalOpen && logToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200" onClick={closeDeleteModal}></div>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-600 mx-auto mb-6">
+                <Trash2 size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Delete System Log?</h3>
+              <p className="text-gray-500 font-medium leading-relaxed">
+                Are you sure you want to delete this log entry? This action is permanent and cannot be undone.
+              </p>
+              <div className="mt-4 p-3 bg-gray-50 rounded-2xl text-xs font-mono text-gray-400 border border-gray-100 overflow-hidden">
+                <span className="block truncate">Log ID: {logToDelete.id}</span>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 px-8 py-6 flex flex-col sm:flex-row gap-3 border-t border-gray-100">
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full flex-1 bg-red-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95 sm:order-2 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+              <button
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="w-full flex-1 bg-white text-gray-700 border border-gray-200 rounded-2xl py-4 font-black text-sm hover:bg-gray-50 transition-all sm:order-1 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Confirmation Modal - Theme matched with AuthLogs */}
+      {isClearModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsClearModalOpen(false)}></div>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-red-100">
+                <ShieldAlert size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Mass Purge Logs?</h3>
+              <p className="text-gray-500 font-medium leading-relaxed">
+                CRITICAL ACTION: This will permanently delete ALL system logs from the database. This operation is irreversible.
+              </p>
+              <div className="mt-4 p-3 bg-red-50 rounded-2xl text-xs font-black text-red-600 border border-red-100">
+                Total Logs to Clear: {totalLogs}
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 px-8 py-6 flex flex-col sm:flex-row gap-3 border-t border-gray-100">
+              <button
+                onClick={handleClearAll}
+                disabled={isDeleting}
+                className="w-full flex-1 bg-red-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95 sm:order-2 disabled:opacity-50"
+              >
+                {isDeleting ? 'Purging...' : 'Confirm Purge All'}
+              </button>
+              <button
+                onClick={() => setIsClearModalOpen(false)}
+                disabled={isDeleting}
+                className="w-full flex-1 bg-white text-gray-700 border border-gray-200 rounded-2xl py-4 font-black text-sm hover:bg-gray-50 transition-all sm:order-1 disabled:opacity-50"
+              >
+                Abort
+              </button>
             </div>
           </div>
         </div>
@@ -355,10 +551,10 @@ const SystemLogs = () => {
   );
 };
 
-const Detail = ({ label, value, wide = false }) => (
-  <div className={wide ? 'md:col-span-3' : ''}>
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-    <p className="text-sm font-bold text-gray-900 break-words">{value}</p>
+const DetailItem = ({ label, value, wide = false }) => (
+  <div className={wide ? 'col-span-full' : ''}>
+    <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</span>
+    <p className="text-sm font-bold text-gray-900 break-words leading-relaxed">{value}</p>
   </div>
 );
 
