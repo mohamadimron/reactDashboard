@@ -207,7 +207,10 @@ const shouldSkipRequestLog = (req) => {
   if (req.path === '/api/settings/public') return true;
   if (req.path === '/api/system-logs/client') return true;
 
-  return req.method === 'GET' && req.path !== '/api/system-logs';
+  // Requirement: Do not log access to system-logs page (any method)
+  if (req.path.startsWith('/api/system-logs')) return true;
+
+  return false;
 };
 
 const systemRequestLogger = (req, res, next) => {
@@ -217,6 +220,14 @@ const systemRequestLogger = (req, res, next) => {
 
   const startedAt = Date.now();
   res.on('finish', () => {
+    const statusCode = res.statusCode;
+    const isError = statusCode >= 500;
+    
+    // Requirement: ADMIN activities only logged if error occurs
+    if (req.user?.role === 'ADMIN' && !isError) {
+      return;
+    }
+
     const elapsedMs = Date.now() - startedAt;
     const entry = buildRequestLogEntry(req, res, elapsedMs);
     createSystemLog(entry).catch((error) => {

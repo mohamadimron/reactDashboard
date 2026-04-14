@@ -141,6 +141,17 @@ const createFrontendLog = async (req, res) => {
     const normalizedType = String(type || SYSTEM_LOG_TYPE.EVENT).toUpperCase();
     const normalizedLevel = String(level || (normalizedType === SYSTEM_LOG_TYPE.ERROR ? SYSTEM_LOG_LEVEL.ERROR : SYSTEM_LOG_LEVEL.INFO)).toUpperCase();
 
+    // Requirement: Do not log activity on system-logs page
+    // Frontend usually sends path as /dashboard/system-logs
+    if (path && (path.includes('system-logs') || path.includes('systemLog'))) {
+      return res.status(204).end();
+    }
+
+    // Requirement: ADMIN activities only logged if error
+    if (req.user?.role === 'ADMIN' && normalizedType !== SYSTEM_LOG_TYPE.ERROR) {
+      return res.status(204).end();
+    }
+
     if (!Object.values(SYSTEM_LOG_TYPE).includes(normalizedType)) {
       return res.status(400).json({ message: 'Invalid log type' });
     }
