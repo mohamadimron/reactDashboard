@@ -85,7 +85,7 @@ const getSystemLogs = async (req, res) => {
       pool.query(`
         SELECT
           "id", "source", "type", "level", "category", "action", "message",
-          "method", "path", "statusCode", "userId", "userRole", "ipAddress",
+          "method", "path", "statusCode", "userId", "userName", "userRole", "ipAddress",
           "userAgent", "metadata", "stack", "createdAt"
         FROM "SystemLog"
         ${whereClause}

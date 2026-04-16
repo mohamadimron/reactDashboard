@@ -18,7 +18,8 @@ import {
   Info,
   Activity,
   Globe,
-  Terminal
+  Terminal,
+  User
 } from 'lucide-react';
 import { logFrontendError } from '../utils/frontendLogger';
 
@@ -280,18 +281,19 @@ const SystemLogs = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Timestamp</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Source & Category</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Event Type</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Timestamp</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Source & Category</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Event Type</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">User & Role</th>
                 <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Action & Message</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Connection</th>
-                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Connection</th>
+                <th className="px-6 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading && logs.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center space-y-3">
                       <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       <p className="text-sm font-bold text-gray-400">Syncing system audit...</p>
@@ -300,7 +302,7 @@ const SystemLogs = () => {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-6 py-12 text-center">
                     <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching system events found</p>
                   </td>
                 </tr>
@@ -330,8 +332,25 @@ const SystemLogs = () => {
                         {getLevelBadge(log.level)}
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2 text-gray-700">
+                        <div className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
+                          <User size={14} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-gray-900 truncate max-w-[120px]" title={log.userName || log.userId || 'System'}>
+                            {log.userName || (log.userId ? `ID: ${log.userId.split('-')[0]}` : 'System')}
+                          </span>
+                          <span className={`inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            log.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {log.userRole || 'ANONYMOUS'}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col max-w-[300px]">
+                      <div className="flex flex-col min-w-[200px] max-w-lg">
                         <span className="text-[10px] font-black text-gray-400 uppercase truncate" title={log.action}>{log.action}</span>
                         <p className="text-sm font-bold text-gray-900 line-clamp-1" title={log.message}>{log.message}</p>
                         {log.stack && (
@@ -451,8 +470,9 @@ const SystemLogs = () => {
                   <DetailRow label="Message" value={selectedLog.message} />
                   <DetailRow label="Resource Path" value={selectedLog.path || '/'} isMono />
                   <DetailRow label="Network Origin" value={selectedLog.ipAddress || 'Internal'} isMono />
-                  <DetailRow label="Executor ID" value={selectedLog.userId || 'Anonymous'} />
-                  <DetailRow label="Event Timestamp" value={new Date(selectedLog.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' })} />
+                <DetailRow label="Executor ID" value={selectedLog.userId || 'Anonymous'} />
+                <DetailRow label="Executor Name" value={selectedLog.userName || 'System/Guest'} />
+                <DetailRow label="Event Timestamp" value={new Date(selectedLog.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' })} />
                 </div>
               </div>
 

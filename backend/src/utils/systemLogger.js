@@ -34,6 +34,7 @@ const ensureSystemLogsTable = async () => {
       "path" TEXT,
       "statusCode" INTEGER,
       "userId" TEXT,
+      "userName" TEXT,
       "userRole" TEXT,
       "ipAddress" TEXT,
       "userAgent" TEXT,
@@ -41,6 +42,17 @@ const ensureSystemLogsTable = async () => {
       "stack" TEXT,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  // Ensure userName column exists for existing tables
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SystemLog' AND column_name='userName') THEN
+        ALTER TABLE "SystemLog" ADD COLUMN "userName" TEXT;
+      END IF;
+    END
+    $$;
   `);
 
   await pool.query(`CREATE INDEX IF NOT EXISTS "SystemLog_createdAt_idx" ON "SystemLog" ("createdAt" DESC)`);
@@ -87,6 +99,7 @@ const createSystemLog = async ({
   path = null,
   statusCode = null,
   userId = null,
+  userName = null,
   userRole = null,
   ipAddress = null,
   userAgent = null,
@@ -107,6 +120,7 @@ const createSystemLog = async ({
     path: path ? truncateText(path) : null,
     statusCode: Number.isInteger(statusCode) ? statusCode : null,
     userId: userId ? truncateText(userId) : null,
+    userName: userName ? truncateText(userName) : null,
     userRole: userRole ? truncateText(userRole) : null,
     ipAddress: ipAddress ? truncateText(ipAddress) : null,
     userAgent: userAgent ? truncateText(userAgent) : null,
@@ -117,13 +131,13 @@ const createSystemLog = async ({
   await pool.query(`
     INSERT INTO "SystemLog" (
       "id", "source", "type", "level", "category", "action", "message",
-      "method", "path", "statusCode", "userId", "userRole", "ipAddress",
+      "method", "path", "statusCode", "userId", "userName", "userRole", "ipAddress",
       "userAgent", "metadata", "stack"
     )
     VALUES (
       $1, $2, $3, $4, $5, $6, $7,
-      $8, $9, $10, $11, $12, $13,
-      $14, $15::jsonb, $16
+      $8, $9, $10, $11, $12, $13, $14,
+      $15, $16::jsonb, $17
     )
   `, [
     log.id,
@@ -137,6 +151,7 @@ const createSystemLog = async ({
     log.path,
     log.statusCode,
     log.userId,
+    log.userName,
     log.userRole,
     log.ipAddress,
     log.userAgent,
@@ -188,6 +203,7 @@ const buildRequestLogEntry = (req, res, elapsedMs) => {
     path: req.originalUrl,
     statusCode,
     userId: req.user?.userId || null,
+    userName: req.user?.userName || null,
     userRole: req.user?.role || null,
     ipAddress: getClientIp(req),
     userAgent: req.headers['user-agent'] || null,
@@ -248,6 +264,7 @@ const logUnhandledBackendError = (err, req, statusCode = 500) => {
     path: req.originalUrl,
     statusCode,
     userId: req.user?.userId || null,
+    userName: req.user?.userName || null,
     userRole: req.user?.role || null,
     ipAddress: getClientIp(req),
     userAgent: req.headers['user-agent'] || null,

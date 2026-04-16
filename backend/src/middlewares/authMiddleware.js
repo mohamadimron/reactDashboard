@@ -58,6 +58,7 @@ const protect = async (req, res, next) => {
       // Attach full user info with permissions to req.user
       req.user = {
         userId: user.id,
+        userName: user.name,
         role: user.role.name,
         permissions: {
           canViewUsers: user.role.canViewUsers,
@@ -103,6 +104,7 @@ const optionalProtect = async (req, res, next) => {
     if (user && user.lastSessionId === decoded.sessionId) {
       req.user = {
         userId: user.id,
+        userName: user.name,
         role: user.role.name,
         permissions: {
           canViewUsers: user.role.canViewUsers,
