@@ -171,6 +171,7 @@ const createFrontendLog = async (req, res) => {
       path: path ? String(path) : null,
       statusCode: null,
       userId: req.user?.userId || null,
+      userName: req.user?.userName || null,
       userRole: req.user?.role || null,
       ipAddress: getClientIp(req),
       userAgent: req.headers['user-agent'] || null,
