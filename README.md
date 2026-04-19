@@ -447,7 +447,42 @@ Cek:
 - route settings internal memerlukan permission `canManageSettings`
 - root project sekarang memiliki `package.json` sendiri untuk menjalankan backend dan frontend dengan satu command
 
+## Pembaruan Terkini (Sesi Audit & Optimalisasi)
+
+Dokumentasi perubahan terbaru pada sistem terkait manajemen log, optimasi UI, standarisasi konfigurasi, dan audit keamanan.
+
+### 1. Manajemen System Logs
+- **Fitur Hapus Log:** Implementasi fungsi penghapusan log individual dan "Clear All" (mass purge) untuk membersihkan seluruh tabel log.
+- **Akses Admin:** Seluruh fungsi penghapusan log dilindungi oleh middleware `admin` di backend dan pengecekan role di frontend.
+- **UI Konsisten:** Tampilan halaman `System Logs` telah diselaraskan dengan `Auth Logs`, mencakup:
+  - Layout tabel full-width yang responsif.
+  - Kolom **User & Role** yang akurat (menampilkan Nama User dan Role).
+  - Modal detail log yang komprehensif (termasuk stack trace dan metadata).
+  - Popup konfirmasi penghapusan bertema sistem (senada dengan AuthLogs).
+
+### 2. Optimalisasi Mekanisme Logging
+Sesuai dengan instruksi keamanan dan efisiensi, mekanisme logging telah diperbarui:
+- **Filter Akses Halaman:** Sistem **tidak mencatat** log (baik backend maupun frontend-event) saat pengguna mengakses atau berinteraksi dengan halaman `/system-logs`.
+- **Logging Berbasis Role:** Aktivitas pengguna dengan level **ADMIN** hanya akan dicatat sebagai log jika terjadi **Error**, aktivitas normal (event/info) tidak akan dicatat untuk mengurangi redundansi data.
+- **Data User Lengkap:** Log kini menangkap `userName` secara presisi, menggantikan format ID yang kurang informatif pada versi sebelumnya.
+- **Skema Dinamis:** Sistem secara otomatis mendeteksi dan menambahkan kolom yang diperlukan (`userName`) pada tabel `SystemLog` jika belum tersedia.
+
+### 3. Konfigurasi Environment (.env)
+Menghilangkan nilai *hardcoded* untuk meningkatkan fleksibilitas dan keamanan:
+- **Backend:** Menggunakan `ALLOWED_ORIGINS` dari `.env` untuk daftar putih CORS.
+- **Frontend:** Menggunakan `VITE_ALLOWED_HOSTS` untuk izin host dev server, serta `VITE_API_URL` dan `VITE_API_URL_DEV` untuk endpoint API yang dinamis.
+
+### 4. Hasil Audit Keamanan (April 2026)
+Audit dilakukan terhadap proses Login, Register, dan Alur Data:
+- **SQL Injection:** **SANGAT AMAN**. Penggunaan Prisma ORM dan parameterized queries serta validasi skema via Zod menutup celah injeksi.
+- **Otentikasi:** **KUAT**. Menggunakan Bcrypt (10 rounds), penegakan *Single Session* (mencegah login ganda), dan *Idle Timeout* yang ketat.
+- **Proteksi Pihak Ketiga:** **TERPROTEKSI**. Implementasi Cookie `HttpOnly`, `Secure`, dan `SameSite: Lax` melindungi dari serangan XSS dan CSRF. Penggunaan `Helmet` untuk penguatan header keamanan.
+
+---
+*Catatan: Semua perubahan telah diuji dan berjalan stabil tanpa error.*
+
 ## Dokumentasi Tambahan
+... (rest of the content)
 
 - [frontend/README.md](/DATA/Documents/react-app/react-dashboard/frontend/README.md)
 - [backend/README.md](/DATA/Documents/react-app/react-dashboard/backend/README.md)
