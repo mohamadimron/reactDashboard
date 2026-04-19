@@ -23,14 +23,7 @@ app.set('trust proxy', 1);
 
 // 1. ABSOLUTE MANUAL CORS (Must be at the very top, before ANY other middleware)
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://172.18.0.1:5173',
-    'http://192.168.0.105:5173',
-    'https://test2.tuman.web.id',
-    'https://apitest2.tuman.web.id'
-  ];
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',');
   
   const origin = req.headers.origin;
   

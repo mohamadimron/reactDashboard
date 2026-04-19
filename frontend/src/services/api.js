@@ -3,10 +3,11 @@ import { emitSessionExpired, SESSION_EXPIRY_REASONS } from '../utils/sessionExpi
 import { hasActiveAuthenticatedSession, setAuthenticatedSession } from '../utils/authSessionState';
 import { logFrontendError } from '../utils/frontendLogger';
 
-// Dynamically determine the API URL
-export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? `http://${window.location.hostname}:5000/api`
-  : "https://apitest2.tuman.web.id/api";
+// Dynamically determine the API URL using environment variables
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+export const API_URL = isLocal
+  ? (import.meta.env.VITE_API_URL_DEV || `http://${window.location.hostname}:5000/api`)
+  : import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
