@@ -2,9 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>React Dashboard</title>
+    <script>
+      (function () {
+        try {
+          var rawValue = window.localStorage.getItem('react_dashboard_ui_branding');
+          if (!rawValue) return;
+
+          var parsed = JSON.parse(rawValue);
+          var title = String(parsed.websiteTitle || '').trim();
+          var favicon = parsed.websiteFaviconUrl || '';
+
+          if (title) {
+            document.title = title;
+          }
+
+          if (!favicon) return;
+
+          var link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.setAttribute('rel', 'icon');
+            document.head.appendChild(link);
+          }
+
+          var isAbsolute = /^https?:\/\//i.test(favicon);
+          var backendApiBase =
+            window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+              ? 'http://' + window.location.hostname + ':5000/api'
+              : 'https://apitest2.tuman.web.id/api';
+          var resolvedFavicon = isAbsolute
+            ? favicon
+            : backendApiBase + (favicon.charAt(0) === '/' ? favicon : '/' + favicon);
+          var type = resolvedFavicon.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+
+          link.setAttribute('type', type);
+          link.setAttribute('href', resolvedFavicon);
+        } catch (error) {
+          // Ignore cached branding failures and continue with defaults.
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/x-icon" href="data:," />
+    <title></title>
   </head>
   <body>
     <div id="root"></div>

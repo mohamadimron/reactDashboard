@@ -3,6 +3,7 @@ import { logFrontendError } from './frontendLogger';
 
 const DEFAULT_TITLE = 'React Dashboard';
 const DEFAULT_FAVICON = '/favicon.svg';
+const UI_BRANDING_STORAGE_KEY = 'react_dashboard_ui_branding';
 
 const getFaviconMimeType = (faviconUrl) => {
   if (faviconUrl?.endsWith('.svg')) return 'image/svg+xml';
@@ -22,8 +23,37 @@ const toAbsoluteAssetUrl = (assetPath) => {
   return `${API_URL}${normalizedPath}`;
 };
 
+const persistUiBranding = ({ websiteTitle, websiteFaviconUrl } = {}) => {
+  try {
+    window.localStorage.setItem(UI_BRANDING_STORAGE_KEY, JSON.stringify({
+      websiteTitle: String(websiteTitle || '').trim() || DEFAULT_TITLE,
+      websiteFaviconUrl: websiteFaviconUrl || DEFAULT_FAVICON
+    }));
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
+export const getCachedUiBranding = () => {
+  try {
+    const rawValue = window.localStorage.getItem(UI_BRANDING_STORAGE_KEY);
+    if (!rawValue) return null;
+
+    const parsed = JSON.parse(rawValue);
+    return {
+      websiteTitle: String(parsed.websiteTitle || '').trim() || DEFAULT_TITLE,
+      websiteFaviconUrl: parsed.websiteFaviconUrl || DEFAULT_FAVICON
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const applyUiBranding = ({ websiteTitle, websiteFaviconUrl } = {}) => {
-  document.title = String(websiteTitle || '').trim() || DEFAULT_TITLE;
+  const resolvedTitle = String(websiteTitle || '').trim() || DEFAULT_TITLE;
+  const resolvedFavicon = websiteFaviconUrl || DEFAULT_FAVICON;
+
+  document.title = resolvedTitle;
 
   let faviconEl = document.querySelector('link[rel="icon"]');
   if (!faviconEl) {
@@ -32,9 +62,14 @@ export const applyUiBranding = ({ websiteTitle, websiteFaviconUrl } = {}) => {
     document.head.appendChild(faviconEl);
   }
 
-  const faviconUrl = websiteFaviconUrl ? toAbsoluteAssetUrl(websiteFaviconUrl) : DEFAULT_FAVICON;
+  const faviconUrl = toAbsoluteAssetUrl(resolvedFavicon);
   faviconEl.setAttribute('type', getFaviconMimeType(faviconUrl));
   faviconEl.setAttribute('href', faviconUrl);
+
+  persistUiBranding({
+    websiteTitle: resolvedTitle,
+    websiteFaviconUrl: resolvedFavicon
+  });
 };
 
 export const fetchAndApplyUiBranding = async () => {
@@ -47,7 +82,8 @@ export const fetchAndApplyUiBranding = async () => {
     applyUiBranding(response.data);
     return response.data;
   } catch (error) {
-    applyUiBranding({
+    const cachedBranding = getCachedUiBranding();
+    applyUiBranding(cachedBranding || {
       websiteTitle: DEFAULT_TITLE,
       websiteFaviconUrl: DEFAULT_FAVICON
     });
