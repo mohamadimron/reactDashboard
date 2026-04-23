@@ -5,7 +5,9 @@ const { randomUUID } = require('crypto');
 const SYSTEM_SETTING_KEYS = {
   DEFAULT_REGISTRATION_ROLE: 'defaultRegistrationRole',
   REGISTER_PAGE_ENABLED: 'registerPageEnabled',
-  REGISTER_MAX_PER_DAY: 'registerMaxPerDay'
+  REGISTER_MAX_PER_DAY: 'registerMaxPerDay',
+  WEBSITE_TITLE: 'websiteTitle',
+  WEBSITE_FAVICON_URL: 'websiteFaviconUrl'
 };
 
 const DEFAULT_PUBLIC_REGISTRATION_ROLE = 'USER';
@@ -13,6 +15,8 @@ const DEFAULT_REGISTER_PAGE_ENABLED = true;
 const REGISTER_MAX_PER_DAY_OPTIONS = [5, 10, 20, 40, 60];
 const DEFAULT_REGISTER_MAX_PER_DAY = 60;
 const DEFAULT_REGISTRATION_LIMIT_TIME_ZONE = process.env.REGISTRATION_LIMIT_TIME_ZONE || 'Asia/Jakarta';
+const DEFAULT_WEBSITE_TITLE = 'React Dashboard';
+const DEFAULT_WEBSITE_FAVICON_URL = '/ui-assets/default-favicon.svg';
 
 let systemSettingColumnsCache = null;
 
@@ -270,6 +274,8 @@ module.exports = {
   REGISTER_MAX_PER_DAY_OPTIONS,
   DEFAULT_REGISTER_MAX_PER_DAY,
   DEFAULT_REGISTRATION_LIMIT_TIME_ZONE,
+  DEFAULT_WEBSITE_TITLE,
+  DEFAULT_WEBSITE_FAVICON_URL,
   getSystemSettingsMap,
   getSystemSetting,
   upsertSystemSetting,

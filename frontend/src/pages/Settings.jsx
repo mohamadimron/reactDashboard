@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { logFrontendError } from '../utils/frontendLogger';
+import { applyUiBranding, getUiAssetUrl } from '../utils/uiBranding';
 import { 
   Settings as SettingsIcon, Trash2,
-  CheckCircle2, XCircle, Save, Loader2, Lock, ShieldCheck
+  CheckCircle2, XCircle, Save, Loader2, Lock, ShieldCheck, ImagePlus, Type
 } from 'lucide-react';
 
 const Settings = () => {
@@ -15,6 +16,9 @@ const Settings = () => {
   const [registerPageEnabled, setRegisterPageEnabled] = useState(true);
   const [registerMaxPerDay, setRegisterMaxPerDay] = useState(60);
   const [registerMaxPerDayOptions, setRegisterMaxPerDayOptions] = useState([5, 10, 20, 40, 60]);
+  const [websiteTitle, setWebsiteTitle] = useState('React Dashboard');
+  const [websiteFaviconUrl, setWebsiteFaviconUrl] = useState('');
+  const [faviconFile, setFaviconFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('roles');
   const [newRoleName, setNewRoleName] = useState('');
@@ -26,6 +30,14 @@ const Settings = () => {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const faviconPreviewUrl = useMemo(() => {
+    if (faviconFile) {
+      return URL.createObjectURL(faviconFile);
+    }
+
+    return websiteFaviconUrl ? getUiAssetUrl(websiteFaviconUrl) : '';
+  }, [faviconFile, websiteFaviconUrl]);
 
   const fetchSettingsData = async () => {
     setLoading(true);
@@ -53,6 +65,9 @@ const Settings = () => {
           ? settingsRes.data.registerMaxPerDayOptions
           : [5, 10, 20, 40, 60]
       );
+      setWebsiteTitle(settingsRes.data?.websiteTitle || 'React Dashboard');
+      setWebsiteFaviconUrl(settingsRes.data?.websiteFaviconUrl || '');
+      setFaviconFile(null);
     } catch (err) {
       logFrontendError('fetch_settings_data_failed', err);
     } finally {
@@ -63,6 +78,14 @@ const Settings = () => {
   useEffect(() => {
     fetchSettingsData();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (faviconFile && faviconPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(faviconPreviewUrl);
+      }
+    };
+  }, [faviconFile, faviconPreviewUrl]);
 
   const handleAddRole = async (e) => {
     e.preventDefault();
@@ -145,6 +168,62 @@ const Settings = () => {
       showSuccess(`Daily registration limit updated to ${registerMaxPerDay} users.`);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update daily registration limit');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveWebsiteTitle = async () => {
+    if (!websiteTitle.trim()) {
+      alert('Website title is required');
+      return;
+    }
+
+    setIsSaving('website-title');
+    try {
+      await api.put('/settings', {
+        key: 'websiteTitle',
+        value: websiteTitle.trim()
+      });
+      applyUiBranding({
+        websiteTitle: websiteTitle.trim(),
+        websiteFaviconUrl
+      });
+      showSuccess(`Website title updated to ${websiteTitle.trim()}.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update website title');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const uploadFavicon = async () => {
+    if (!faviconFile) {
+      alert('Please choose an image for the favicon');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('favicon', faviconFile);
+
+    setIsSaving('website-favicon');
+    try {
+      const response = await api.post('/settings/favicon', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const savedFaviconUrl = response.data?.value || '';
+      setWebsiteFaviconUrl(savedFaviconUrl);
+      setFaviconFile(null);
+      applyUiBranding({
+        websiteTitle,
+        websiteFaviconUrl: savedFaviconUrl
+      });
+      showSuccess('Favicon updated successfully.');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to upload favicon');
     } finally {
       setIsSaving(false);
     }
@@ -241,6 +320,14 @@ const Settings = () => {
           }`}
         >
           RegisterMax
+        </button>
+        <button
+          onClick={() => setActiveTab('uiSettings')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+            activeTab === 'uiSettings' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          UI Settings
         </button>
       </div>
 
@@ -555,7 +642,7 @@ const Settings = () => {
             </div>
           ))}
         </div>
-      ) : (
+      ) : activeTab === 'registerMax' ? (
         <div className="animate-in slide-in-from-right-4 duration-500">
           <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/40">
@@ -625,6 +712,144 @@ const Settings = () => {
                 {isSaving === 'register-max-per-day' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 <span>Save RegisterMax</span>
               </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] gap-6 lg:gap-8 animate-in slide-in-from-right-4 duration-500">
+          <div className="space-y-6">
+            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+                  <Type size={24} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-black text-gray-900">Website Title</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-1 leading-relaxed">
+                    Update the browser tab title and apply the same title consistently across the full application shell.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">
+                    Browser Tab Title
+                  </label>
+                  <input
+                    type="text"
+                    value={websiteTitle}
+                    maxLength={120}
+                    onChange={(e) => setWebsiteTitle(e.target.value)}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 sm:px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                    placeholder="React Dashboard"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveWebsiteTitle}
+                  disabled={isSaving === 'website-title'}
+                  className="w-full bg-blue-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSaving === 'website-title' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                  <span>Save Website Title</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                  <ImagePlus size={24} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-black text-gray-900">Favicon</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-1 leading-relaxed">
+                    Upload a square-friendly logo. The system automatically fits it into the standard favicon canvas without stretching or distortion.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">
+                    Upload Favicon
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 sm:px-6 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all file:mr-4 file:rounded-xl file:border-0 file:bg-white file:px-4 file:py-2 file:text-xs file:font-black file:text-gray-700"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={uploadFavicon}
+                  disabled={isSaving === 'website-favicon'}
+                  className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-black text-sm shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSaving === 'website-favicon' ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                  <span>Upload Favicon</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/40">
+                <h3 className="text-xl font-black text-gray-900">Live Preview</h3>
+                <p className="text-sm text-gray-500 font-medium mt-1">
+                  Preview how the current title and favicon will appear across the application shell.
+                </p>
+              </div>
+
+              <div className="p-6 sm:p-8 space-y-6">
+                <div className="rounded-[2rem] border border-gray-100 bg-gray-50 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+                      {faviconPreviewUrl ? (
+                        <img src={faviconPreviewUrl} alt="Favicon Preview" className="h-10 w-10 object-contain" />
+                      ) : (
+                        <span className="text-xs font-black text-gray-300">ICON</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Browser Tab Preview</p>
+                      <p className="text-lg font-black text-gray-900 truncate">{websiteTitle || 'React Dashboard'}</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1 truncate">Applied on login, register, dashboard, and every internal route.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-gray-100 bg-white overflow-hidden">
+                  <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-rose-400"></span>
+                      <span className="h-3 w-3 rounded-full bg-amber-400"></span>
+                      <span className="h-3 w-3 rounded-full bg-emerald-400"></span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="inline-flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="h-8 w-8 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden">
+                        {faviconPreviewUrl ? (
+                          <img src={faviconPreviewUrl} alt="Favicon Preview" className="h-5 w-5 object-contain" />
+                        ) : null}
+                      </div>
+                      <span className="text-sm font-black text-gray-900">{websiteTitle || 'React Dashboard'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-4 sm:px-5">
+                  <p className="text-xs font-bold text-gray-500 leading-relaxed">
+                    Uploaded favicons are converted to a standard square PNG canvas with transparent padding as needed, so the visual stays centered and undistorted on browser tabs.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

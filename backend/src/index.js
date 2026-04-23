@@ -140,6 +140,16 @@ app.use(
   })
 );
 
+app.use(
+  '/api/ui-assets',
+  express.static(path.join(process.cwd(), 'ui-assets'), {
+    fallthrough: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=300');
+    }
+  })
+);
+
 // 6. Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

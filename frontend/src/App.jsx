@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import SystemLogs from './pages/SystemLogs';
 import SessionExpiredModal from './components/SessionExpiredModal';
 import { installFrontendErrorLogging, logFrontendEvent } from './utils/frontendLogger';
+import { fetchAndApplyUiBranding } from './utils/uiBranding';
 
 const RouteChangeLogger = () => {
   const location = useLocation();
@@ -32,6 +33,9 @@ const RouteChangeLogger = () => {
 
 function App() {
   useEffect(() => installFrontendErrorLogging(), []);
+  useEffect(() => {
+    void fetchAndApplyUiBranding();
+  }, []);
 
   return (
     <AuthProvider>

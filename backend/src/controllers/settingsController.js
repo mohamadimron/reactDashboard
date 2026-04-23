@@ -5,6 +5,8 @@ const {
   DEFAULT_REGISTER_PAGE_ENABLED,
   REGISTER_MAX_PER_DAY_OPTIONS,
   DEFAULT_REGISTER_MAX_PER_DAY,
+  DEFAULT_WEBSITE_TITLE,
+  DEFAULT_WEBSITE_FAVICON_URL,
   getSystemSettingsMap,
   parseBooleanSetting,
   parseRegisterMaxPerDay,
@@ -26,7 +28,11 @@ const getSystemSettings = async (req, res) => {
         settings[SYSTEM_SETTING_KEYS.REGISTER_MAX_PER_DAY],
         DEFAULT_REGISTER_MAX_PER_DAY
       ),
-      registerMaxPerDayOptions: REGISTER_MAX_PER_DAY_OPTIONS
+      registerMaxPerDayOptions: REGISTER_MAX_PER_DAY_OPTIONS,
+      websiteTitle:
+        String(settings[SYSTEM_SETTING_KEYS.WEBSITE_TITLE] || '').trim() || DEFAULT_WEBSITE_TITLE,
+      websiteFaviconUrl:
+        settings[SYSTEM_SETTING_KEYS.WEBSITE_FAVICON_URL] || DEFAULT_WEBSITE_FAVICON_URL
     });
   } catch (error) {
     console.error('[Settings] Fetch Error:', error);
@@ -41,7 +47,11 @@ const getPublicSystemSettings = async (req, res) => {
       registerPageEnabled: parseBooleanSetting(
         settings[SYSTEM_SETTING_KEYS.REGISTER_PAGE_ENABLED],
         DEFAULT_REGISTER_PAGE_ENABLED
-      )
+      ),
+      websiteTitle:
+        String(settings[SYSTEM_SETTING_KEYS.WEBSITE_TITLE] || '').trim() || DEFAULT_WEBSITE_TITLE,
+      websiteFaviconUrl:
+        settings[SYSTEM_SETTING_KEYS.WEBSITE_FAVICON_URL] || DEFAULT_WEBSITE_FAVICON_URL
     });
   } catch (error) {
     console.error('[Settings] Public Fetch Error:', error);
@@ -93,6 +103,21 @@ const updateSetting = async (req, res) => {
       }
 
       const setting = await upsertSystemSetting(key, String(normalizedValue));
+      return res.json(setting);
+    }
+
+    if (key === SYSTEM_SETTING_KEYS.WEBSITE_TITLE) {
+      const normalizedValue = String(value ?? '').trim();
+
+      if (!normalizedValue) {
+        return res.status(400).json({ message: 'Website title is required' });
+      }
+
+      if (normalizedValue.length > 120) {
+        return res.status(400).json({ message: 'Website title must be 120 characters or less' });
+      }
+
+      const setting = await upsertSystemSetting(key, normalizedValue);
       return res.json(setting);
     }
 

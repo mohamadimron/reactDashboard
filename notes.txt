@@ -14,3 +14,5 @@
 
 
 codex resume 019d8219-346a-7621-8f25-2110bd3d2ab5
+
+To resume this session: gemini --resume 6506f05a-ddb4-4546-ba9f-9d6b1a45572e      
