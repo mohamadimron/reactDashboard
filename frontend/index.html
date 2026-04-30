@@ -12,7 +12,7 @@
           var parsed = JSON.parse(rawValue);
           var title = String(parsed.websiteTitle || '').trim();
           var favicon = parsed.websiteFaviconUrl || '';
-
+          
           if (title) {
             document.title = title;
           }
@@ -30,7 +30,7 @@
           var backendApiBase =
             window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
               ? 'http://' + window.location.hostname + ':5000/api'
-              : 'https://apitest2.tuman.web.id/api';
+              : 'https://apidemo.tuman.web.id/api';
           var resolvedFavicon = isAbsolute
             ? favicon
             : backendApiBase + (favicon.charAt(0) === '/' ? favicon : '/' + favicon);
